@@ -73,6 +73,26 @@
 		
 	\end{enumerate}
 	
+	\subsubsection{Major Wrinkles}
+	
+	\begin{itemize}
+		\item[P1] \textbf{A Lack of Loops} The FlashFill algorithm as described in~\cite{gulwani2011automating} defines a use for looping over strings.
+		Excel has no function to do the same task.
+		
+		\item[S1.1] \textit{Fudge it with natural language} Rather than trying
+		to do looping a dynamic number of times, just explain what a function
+		needs to do with words like "Loop for as many times it has a substring"
+		or something.
+		
+		\item[S1.2] \textit{Go VBA instead.} Try to accomplish the same task
+		using VBA lingo over pure Excel functions.
+		
+		\item[P2] \textbf{A Rejection of Regular Expressions} Don't think I can use these in standard Excel functions either.
+		
+		\item[S2.1] \textit{Go VBA instead.} Since I think can. Plus, you can still
+		use regular Excel functions in VBA\footnote{https://msdn.microsoft.com/en-us/library/office/hh211481\%28v=office.14\%29.aspx}.
+	\end{itemize}
+	
 	\bibliography{FlushFillPaper}{} \bibliographystyle{plain}
 	
 \end{document}
