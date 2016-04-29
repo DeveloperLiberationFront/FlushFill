@@ -1,0 +1,2 @@
+Albania	355	"case 355 : return ""Albania"";"
+Algeria	213	"case 213 : return ""Algeria"";"
