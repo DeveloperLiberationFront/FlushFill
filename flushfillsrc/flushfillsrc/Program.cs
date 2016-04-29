@@ -48,6 +48,27 @@ namespace flushfillsrc
     /// </summary>
     class FlushFill
     {
+        internal class IOPair
+        {
+            private string[] input;
+            public string[] Input
+            {
+                get { return input; }
+            }
+
+            private string output;
+            public string Output
+            {
+                get { return output; }
+            }
+
+            public IOPair(string[] input, string output)
+            {
+                this.input = input;
+                this.output = output;
+            }
+        }
+
         /// <summary>
         /// The driving function for program synthesis. Just pass in the example file (currently expects txt with tab
         /// separation, though should probably just change to tsv...)
@@ -58,11 +79,8 @@ namespace flushfillsrc
         {
             if (file.EndsWith(".txt"))
             {
-                List<List<string>> input;
-                List<string> output;
-                ExtractColumns(file, out input, out output);
-
-                output.ForEach(i => Console.Write(i + " "));
+                List<IOPair> iopairs = ExtractColumns(file);
+                iopairs.ForEach(i => Console.Write(i.Output + " "));
                 Console.WriteLine();
 
                 return false;
@@ -79,31 +97,68 @@ namespace flushfillsrc
         /// <param name="input">Returning input columns in list of lists.</param>
         /// <param name="output">Returning output column as list.</param>
         /// <returns>Lists of the input and the output.</returns>
-        private void ExtractColumns(string file, out List<List<string>> input, out List<string> output)
+        private List<IOPair> ExtractColumns(string file)
         {
             StreamReader reader = new StreamReader(File.OpenRead(@file));
-            List<List<string>> columns = new List<List<string>>();
+            List<IOPair> iopairs = new List<IOPair>();
 
             while (!reader.EndOfStream)
             {
                 string line = reader.ReadLine();
                 string[] values = line.Split('\t');
 
-                for (int i = 0; i < values.Length; ++i)
-                {
-                    if (columns.Count <= i)
-                        columns.Add(new List<string>());
+                int len = values.Length;
+                if (len < 2)
+                    throw new InvalidOperationException();
 
-                    columns[i].Add(values[i]);
-                }
+                iopairs.Add(new IOPair(values.Take(len - 1).ToArray(), values[len - 1]));
             }
 
-            if (columns.Count < 2)
-                throw new InvalidOperationException();
+            return iopairs;
+        }
 
-            output = columns.Last();
-            columns.RemoveAt(columns.Count - 1);
-            input = columns;
+        private void GenerateStringProgram(List<IOPair> iopairs)
+        {
+            List<Tuple<List<string>, string>> T = new List<Tuple<List<string>, string>>();
+            foreach(IOPair iopair in iopairs)
+            {
+
+            }
+        }
+
+        private void GeneratePartition()
+        {
+
+        }
+
+        private void GenerateBoolClassifier()
+        {
+
+        }
+
+        private void GenerateStr()
+        {
+
+        }
+
+        private void GenerateLoop()
+        {
+
+        }
+
+        private void GenerateSubstring()
+        {
+
+        }
+
+        private void GeneratePosition()
+        {
+
+        }
+
+        private void GenerateRegex()
+        {
+
         }
     }
 }
