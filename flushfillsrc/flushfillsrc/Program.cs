@@ -169,6 +169,19 @@ namespace flushfillsrc
             //  if ([[Loop(lambda W : eSet)]]sigma = {s[k1 : k3]})
             //      W(<k1, k3>) = W'(<k1, k3>) U {Loop(lambda W : eSet)};
 
+            string input = pair.Input;
+            int len = pair.Output.Length;
+            for (int i = 0; i < len; ++i)
+            {
+                for (int j = i; j < len; ++j)
+                {
+                    for (int k = j; k < len; ++k)
+                    {
+                        //traceSet1 = GenerateStr()
+                    }
+                }
+            }
+
             return mapping;
         }
 
@@ -210,12 +223,13 @@ namespace flushfillsrc
 
         class IOPair
         {
-            public string[] Input { get; private set; }
+            //public string[] Input { get; private set; }
+            public string Input { get; private set; }
             public string Output { get; private set; }
 
             public IOPair(string[] input, string output)
             {
-                Input = input;
+                Input = input[0];   //TODO: Only counts the first column right now.
                 Output = output;
             }
         }
