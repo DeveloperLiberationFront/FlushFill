@@ -1,2 +1,3 @@
-./flushfillsrc/flushfillsrc/bin/
-./flushfillsrc/flushfillsrc/obj/
+flushfillsrc/flushfillsrc/bin/
+flushfillsrc/flushfillsrc/obj/
+*.csv

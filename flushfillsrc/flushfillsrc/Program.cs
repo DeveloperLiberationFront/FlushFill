@@ -48,27 +48,6 @@ namespace flushfillsrc
     /// </summary>
     class FlushFill
     {
-        internal class IOPair
-        {
-            private string[] input;
-            public string[] Input
-            {
-                get { return input; }
-            }
-
-            private string output;
-            public string Output
-            {
-                get { return output; }
-            }
-
-            public IOPair(string[] input, string output)
-            {
-                this.input = input;
-                this.output = output;
-            }
-        }
-
         /// <summary>
         /// The driving function for program synthesis. Just pass in the example file (currently expects txt with tab
         /// separation, though should probably just change to tsv...)
@@ -122,41 +101,93 @@ namespace flushfillsrc
             List<Tuple<List<string>, string>> T = new List<Tuple<List<string>, string>>();
             foreach(IOPair iopair in iopairs)
             {
-
+                //T = T U (iopair.Input, GenerateStr(iopair); Gets trace expressions.
             }
+        }
+
+        private void GenerateStr(IOPair pair)
+        {
+            List<Node> nodes = null; //= {1,...,Length(pair.Output)};
+            Node nodeStart = null, //={1},
+                 nodeFinish = null; //={Length(pair.Output)};
+            List<Edge> edges = null; //=All edges for i and j where 1 <= i <= j <= Length(pair.Output)
+            // Let W be the mapping that maps edge <i,j> to the set 
+            //      {ConstStr(s[i:j]} U GenerateSubstring(pair.Input, s[i:j]).
+            Dictionary<Edge, Operation> mapping = null,
+                                        newMapping = GenerateLoop(pair, edges, mapping); 
         }
 
         private void GeneratePartition()
         {
-
+            throw new NotImplementedException();
         }
 
         private void GenerateBoolClassifier()
         {
-
+            throw new NotImplementedException();
         }
 
-        private void GenerateStr()
+        private Dictionary<Edge, Operation> GenerateLoop(IOPair pair, List<Edge> edges, Dictionary<Edge, Operation> mapping)
         {
-
-        }
-
-        private void GenerateLoop()
-        {
-
+            throw new NotImplementedException();
         }
 
         private void GenerateSubstring()
         {
-
+            throw new NotImplementedException();
         }
 
         private void GeneratePosition()
         {
-
+            throw new NotImplementedException();
         }
 
         private void GenerateRegex()
+        {
+            throw new NotImplementedException();
+        }
+
+        class IOPair
+        {
+            private string[] input;
+            public string[] Input
+            {
+                get { return input; }
+            }
+
+            private string output;
+            public string Output
+            {
+                get { return output; }
+            }
+
+            public IOPair(string[] input, string output)
+            {
+                this.input = input;
+                this.output = output;
+            }
+        }
+
+        /// <summary>
+        /// For DAG in paper. Represented by eta.
+        /// </summary>
+        class Node
+        {
+            //Nothing...yet.
+        }
+
+        /// <summary>
+        /// For DAG in paper. Represented by xi.
+        /// </summary>
+        class Edge
+        {
+            //Nothing...yet.
+        }
+
+        /// <summary>
+        /// Necessary for whatever the edges in the DAG represent...
+        /// </summary>
+        class Operation
         {
 
         }
