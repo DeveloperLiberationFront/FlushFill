@@ -296,14 +296,44 @@ namespace flushfillsrc
             T Apply(string s);
         }
 
+        public interface IExpandable<T>
+        {
+            HashSet<T> Expand();
+        }
+
+        /// <summary>
+        /// The CONCATENATE expression!
+        /// </summary>
+        private class Trace : IApplicable<string>
+        {
+            public string Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         ///FIGURE 1///
-        
+
         /// <summary>
         /// Switches: conditions and results.
         /// </summary>
-        private class Switch
+        private class Switch : IApplicable<string>
         {
-            ///Nothing...for now.
+            public string Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// When all of the trace expressions are sets (e with ~) in Figure 3
+        /// </summary>
+        private class SwitchSet : IExpandable<Switch>
+        {
+            public HashSet<Switch> Expand()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
@@ -417,16 +447,17 @@ namespace flushfillsrc
         /// <summary>
         /// The base class for SubStr, ConstStr, and Loop.
         /// </summary>
-        private abstract class Atomic : IEquatable<Atomic>
+        private abstract class Atomic<T, U> : IEquatable<T>, IApplicable<U>
         {
-            public abstract bool Equals(Atomic other);
+            public abstract U Apply(string s);
+            public abstract bool Equals(T other);
             public abstract override int GetHashCode();
         }
 
         /// <summary>
         /// SubString object.
         /// </summary>
-        private class SubStr : Atomic 
+        private class SubStr : Atomic<SubStr, string> 
         {
             public string String { get; private set; }
             public int Pos1 { get; private set; }
@@ -439,27 +470,26 @@ namespace flushfillsrc
                 Pos2 = pos2;
             }
 
-            public override bool Equals(Atomic other)
+            public override bool Equals(SubStr other)
             {
-                if (other is SubStr)
-                {
-                    SubStr otherS = (SubStr)other;
-                    return String.Equals(otherS.String) && Pos1 == otherS.Pos1 && Pos2 == otherS.Pos2;
-                }
-                else
-                    return false;
+                return String.Equals(other.String) && Pos1 == other.Pos1 && Pos2 == other.Pos2;
             }
 
             public override int GetHashCode()
             {
                 return String.GetHashCode() ^ Pos1.GetHashCode() ^ Pos2.GetHashCode();
             }
+
+            public override string Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
         /// Constant string object.
         /// </summary>
-        private class ConstStr : Atomic
+        private class ConstStr : Atomic<ConstStr, string>
         {
             public string String { get; private set; }
 
@@ -468,18 +498,17 @@ namespace flushfillsrc
                 String = s;
             }
 
-            public override bool Equals(Atomic other)
+            public override bool Equals(ConstStr other)
             {
-                if (other is ConstStr)
-                {
-                    ConstStr otherC = (ConstStr)other;
-                    return String.Equals(otherC.String);
-                }
-                else
-                    return false;
+                return String.Equals(other.String);
             }
 
             public override int GetHashCode()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override string Apply(string s)
             {
                 throw new NotImplementedException();
             }
@@ -488,7 +517,7 @@ namespace flushfillsrc
         /// <summary>
         /// Loop object.
         /// </summary>
-        private class Loop : Atomic 
+        private class Loop : Atomic<Loop, Trace> 
         {
             public DAG Dag { get; private set; }
 
@@ -497,25 +526,19 @@ namespace flushfillsrc
                 Dag = dag;
             }
 
-            public string Apply(string str)
+            public override bool Equals(Loop other)
             {
-                throw new NotImplementedException();
-            }
-
-            public override bool Equals(Atomic other)
-            {
-                if (other is Loop)
-                {
-                    Loop otherL = (Loop)other;
-                    return Dag.Equals(otherL.Dag);
-                }
-                else
-                    return false;
+                return Dag.Equals(other.Dag);
             }
 
             public override int GetHashCode()
             {
                 return Dag.GetHashCode();
+            }
+
+            public override Trace Apply(string s)
+            {
+                throw new NotImplementedException();
             }
         }
 
