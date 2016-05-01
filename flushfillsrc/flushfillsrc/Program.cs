@@ -291,9 +291,9 @@ namespace flushfillsrc
             //Nothing...yet.
         }
 
-        public abstract class Applicable<T>
+        public interface IApplicable<T>
         {
-            public abstract T Apply(string s);
+            T Apply(string s);
         }
 
         ///FIGURE 1///
@@ -309,7 +309,7 @@ namespace flushfillsrc
         /// <summary>
         /// A collection of conjunctions OR'd together.
         /// </summary>
-        private class Bool : Applicable<bool>
+        private class Bool : IApplicable<bool>
         {
             public HashSet<Conjunct> Conjuncts { get; private set; }
 
@@ -319,7 +319,7 @@ namespace flushfillsrc
                     Conjuncts.Add(c);
             }
 
-            public override bool Apply(string s)
+            public bool Apply(string s)
             {
                 foreach (Conjunct conjuct in Conjuncts)
                     if (conjuct.Apply(s))
@@ -331,7 +331,7 @@ namespace flushfillsrc
         /// <summary>
         /// A bunch of predicates AND'd together.
         /// </summary>
-        private class Conjunct : Applicable<bool>
+        private class Conjunct : IApplicable<bool>
         {
             public HashSet<Predicate> Predicates { get; private set; }
 
@@ -341,7 +341,7 @@ namespace flushfillsrc
                     Predicates.Add(pred);
             }
 
-            public override bool Apply(string s)
+            public bool Apply(string s)
             {
                 foreach (Predicate pred in Predicates)
                     if (!pred.Apply(s))
@@ -354,7 +354,7 @@ namespace flushfillsrc
         /// Either Matching a regular expression or not matching.
         /// TODO: Probably redundant, since I included the Matching field in Match.
         /// </summary>
-        private class Predicate : Applicable<bool>
+        private class Predicate : IApplicable<bool>
         {
             public Match ThisMatch { get; private set; }
 
@@ -363,7 +363,7 @@ namespace flushfillsrc
                 ThisMatch = match;
             }
 
-            public override bool Apply(string s)
+            public bool Apply(string s)
             {
                 return ThisMatch.Apply(s);
             }
@@ -372,7 +372,7 @@ namespace flushfillsrc
         /// <summary>
         /// (v, r, k) -> The string v has at least k instance of the token sequence r.
         /// </summary>
-        private class Match : Applicable<bool>
+        private class Match : IApplicable<bool>
         {
             public bool Matching { get; private set; }
             public string V { get; private set; }
@@ -390,7 +390,7 @@ namespace flushfillsrc
                 K = k;
             }
 
-            public override bool Apply(string s)
+            public bool Apply(string s)
             {
                 throw new NotImplementedException();
             }
@@ -584,21 +584,52 @@ namespace flushfillsrc
             }
         }
 
+        private enum TokenClass { Digit, Alphabet, Lowercase, Uppercase, Alphanumeric, Whitespace, Start, End, Other }; //TODO: Expand on "Other"
+
         /// <summary>
         /// Getting the character classes: [0-9], [a-zA-Z], [a-z], [A-Z], [0-9a-zA-Z], whitespace.
         /// </summary>
-        private class Token : IEquatable<Edge>
+        private class Token : IEquatable<Token>
         {
-            //Nothing...yet.
+            public TokenClass TClass { get; private set; }
 
-            public bool Equals(Edge other)
+            public Token(TokenClass clazz)
             {
-                throw new NotImplementedException();
+                TClass = clazz;
+            }
+
+            public bool Equals(Token other)
+            {
+                TokenClass otherClass = other.TClass;
+                switch (TClass)
+                {
+                    case TokenClass.Digit:
+                        return otherClass == TokenClass.Digit;
+                    case TokenClass.Alphabet:
+                        return otherClass == TokenClass.Alphabet || otherClass == TokenClass.Lowercase || otherClass == TokenClass.Uppercase;
+                    case TokenClass.Lowercase:
+                        return otherClass == TokenClass.Lowercase;
+                    case TokenClass.Uppercase:
+                        return otherClass == TokenClass.Uppercase;
+                    case TokenClass.Alphanumeric:
+                        return otherClass == TokenClass.Digit || otherClass == TokenClass.Alphabet
+                                          || otherClass == TokenClass.Lowercase || otherClass == TokenClass.Uppercase;
+                    case TokenClass.Whitespace:
+                        return otherClass == TokenClass.Whitespace;
+                    case TokenClass.Start:
+                        return otherClass == TokenClass.Start;
+                    case TokenClass.End:
+                        return otherClass == TokenClass.End;
+                    case TokenClass.Other:
+                        return otherClass == TokenClass.Other;
+                    default:
+                        return true; //Just assume the class to be any kind of character.
+                }
             }
 
             public override int GetHashCode()
             {
-                throw new NotImplementedException();
+                return TClass.GetHashCode();
             }
         }
 
