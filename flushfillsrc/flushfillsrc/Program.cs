@@ -178,6 +178,14 @@ namespace flushfillsrc
                     {
                         var traceSet1 = GenerateStr(input, output.Substring(i, j - i));
                         var traceSet2 = GenerateStr(input, output.Substring(j, k - j));
+                        var traceSet = new Intersector().Unify(traceSet1, traceSet2);
+
+                        Loop loop = new Loop(traceSet);
+                        if (loop.Apply(input).Equals(output.Substring(i, k- i)))
+                        {
+                            Edge targetEdge = new Edge(i, k);
+                            //mapping[targetEdge] = mapping[targetEdge] U loop;
+                        }
                     }
                 }
             }
@@ -185,7 +193,7 @@ namespace flushfillsrc
             return mapping;
         }
 
-        private void GenerateSubstring()
+        private void GenerateSubstring(string input, string output)
         {
             throw new NotImplementedException();
 
@@ -195,9 +203,11 @@ namespace flushfillsrc
             //  Y2 = GeneratePosition(sigma(vi), k + Length(s));
             //  result = result U PSubStr(v1, Y1, Y2)};
             //return result;
+
+            HashSet<string> result = new HashSet<string>();
         }
 
-        private void GeneratePosition()
+        private void GeneratePosition(string s, int k)
         {
             throw new NotImplementedException();
 
@@ -211,14 +221,20 @@ namespace flushfillsrc
             //      rSet2 = generateRegex(r2, s);
             //      result = result U {Pos(rSet1, rSet2, {c, -(cprime - c + 1)})};
             //return result;
+
+            HashSet<CPos> result = new HashSet<CPos>();
+            result.Add(new CPos(k));
+            result.Add(new CPos(-(s.Length - k)));
         }
 
-        private void GenerateRegex()
+        private void GenerateRegex(TokenSeq r, string s)
         {
             throw new NotImplementedException();
 
             //let r be of the form TokenSeq(T1,...,Tn)
             //return TokenSeq(IPartss(T1),...,IPartss(Tn));
+
+
         }
 
         private class IOPair
@@ -245,9 +261,26 @@ namespace flushfillsrc
         /// <summary>
         /// For DAG in paper. Represented by xi.
         /// </summary>
-        private class Edge
+        private class Edge : IEquatable<Edge>
         {
-            //Nothing...yet.
+            public int Start { get; private set; }
+            public int End { get; private set; }
+
+            public Edge(int start, int end)
+            {
+                Start = start;
+                End = end;
+            }
+
+            public bool Equals(Edge other)
+            {
+                return Start == other.Start && End == other.End;
+            }
+
+            public override int GetHashCode()
+            {
+                return Start.GetHashCode() ^ End.GetHashCode();
+            }
         }
 
         /// <summary>
@@ -256,6 +289,31 @@ namespace flushfillsrc
         private class Operation
         {
             //Nothing...yet.
+        }
+
+        ///FIGURE 1///
+        
+        /// <summary>
+        /// Switches: conditions and results.
+        /// </summary>
+        private class Switch
+        {
+            ///Nothing...for now.
+        }
+
+        private class Bool
+        {
+            
+        }
+
+        private class Conjunct
+        {
+
+        }
+
+        private class Predicate
+        {
+
         }
 
         private class DAG
@@ -276,15 +334,19 @@ namespace flushfillsrc
             }
         }
 
-        private class Switch
+        /// <summary>
+        /// The base class for SubStr, ConstStr, and Loop.
+        /// </summary>
+        private abstract class Atomic : IEquatable<Atomic>
         {
-            ///Nothing...for now.
+            public abstract bool Equals(Atomic other);
+            public abstract override int GetHashCode();
         }
 
         /// <summary>
         /// SubString object.
         /// </summary>
-        private class SubStr
+        private class SubStr : Atomic 
         {
             public string String { get; private set; }
             public int Pos1 { get; private set; }
@@ -296,12 +358,28 @@ namespace flushfillsrc
                 Pos1 = pos1;
                 Pos2 = pos2;
             }
+
+            public override bool Equals(Atomic other)
+            {
+                if (other is SubStr)
+                {
+                    SubStr otherS = (SubStr)other;
+                    return String.Equals(otherS.String) && Pos1 == otherS.Pos1 && Pos2 == otherS.Pos2;
+                }
+                else
+                    return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return String.GetHashCode() ^ Pos1.GetHashCode() ^ Pos2.GetHashCode();
+            }
         }
 
         /// <summary>
         /// Constant string object.
         /// </summary>
-        private class ConstStr
+        private class ConstStr : Atomic
         {
             public string String { get; private set; }
 
@@ -309,12 +387,28 @@ namespace flushfillsrc
             {
                 String = s;
             }
+
+            public override bool Equals(Atomic other)
+            {
+                if (other is ConstStr)
+                {
+                    ConstStr otherC = (ConstStr)other;
+                    return String.Equals(otherC.String);
+                }
+                else
+                    return false;
+            }
+
+            public override int GetHashCode()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
         /// Loop object.
         /// </summary>
-        private class Loop
+        private class Loop : Atomic 
         {
             public DAG Dag { get; private set; }
 
@@ -322,12 +416,39 @@ namespace flushfillsrc
             {
                 Dag = dag;
             }
+
+            public string Apply(string str)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override bool Equals(Atomic other)
+            {
+                if (other is Loop)
+                {
+                    Loop otherL = (Loop)other;
+                    return Dag.Equals(otherL.Dag);
+                }
+                else
+                    return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return Dag.GetHashCode();
+            }
+        }
+
+        private abstract class Position : IEquatable<Position>
+        {
+            public abstract bool Equals(Position other);
+            public abstract override int GetHashCode();
         }
 
         /// <summary>
         /// CPos object.
         /// </summary>
-        private class CPos
+        private class CPos : Position
         {
             public int K { get; private set; }
 
@@ -335,12 +456,25 @@ namespace flushfillsrc
             {
                 K = k;
             }
+
+            public override bool Equals(Position other)
+            {
+                if (other is CPos)
+                    return K == ((CPos)other).K;
+                else
+                    return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return K.GetHashCode();
+            }
         }
 
         /// <summary>
         /// The Position function.
         /// </summary>
-        private class Pos
+        private class Pos : Position
         {
             public TokenSeq R1 { get; private set; }
             public TokenSeq R2 { get; private set; }
@@ -352,20 +486,46 @@ namespace flushfillsrc
                 R2 = r2;
                 C = c;
             }
+
+            public override bool Equals(Position other)
+            {
+                if (other is Pos)
+                {
+                    Pos otherP = (Pos)other;
+                    return R1.Equals(otherP.R1) && R2.Equals(otherP.R2) && C == otherP.C;
+                }
+                else
+                    return false;
+            }
+
+            public override int GetHashCode()
+            {
+                return R1.GetHashCode() ^ R2.GetHashCode() ^ C.GetHashCode();
+            }
         }
 
         /// <summary>
         /// Getting the character classes: [0-9], [a-zA-Z], [a-z], [A-Z], [0-9a-zA-Z], whitespace.
         /// </summary>
-        private class Token
+        private class Token : IEquatable<Edge>
         {
             //Nothing...yet.
+
+            public bool Equals(Edge other)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override int GetHashCode()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
         /// Token sequence object. Also the regular expressions.
         /// </summary>
-        private class TokenSeq
+        private class TokenSeq : IEquatable<TokenSeq>
         {
             public List<Token> Tokens { get; private set; }
 
@@ -373,6 +533,29 @@ namespace flushfillsrc
             {
                 for (int i = 0; i < tokens.Length; ++i)
                     Tokens.Add(tokens[i]);
+            }
+
+            public bool Equals(TokenSeq other)
+            {
+                List<Token> otherTokens = other.Tokens;
+                if (Tokens.Count != otherTokens.Count)
+                    return false;
+                else
+                {
+                    for (int i = 0; i < Tokens.Count; ++i)
+                        if (!Tokens[i].Equals(otherTokens[i]))
+                            return false;
+
+                    return true;
+                }
+            }
+
+            public override int GetHashCode()
+            {
+                int hash = 0;
+                foreach (Token token in Tokens)
+                    hash ^= token.GetHashCode();
+                return hash;
             }
         }
 
@@ -424,6 +607,57 @@ namespace flushfillsrc
             }
 
             public TokenSeq IntersectRegex(TokenSeq seq1, TokenSeq seq2)
+            {
+                throw new NotImplementedException();
+
+                //each of the sequences supposed to have set of sequences???
+            }
+
+            /////////UNIFY//////////
+
+            public DAG Unify(DAG dag1, DAG dag2)
+            {
+                throw new NotImplementedException();
+
+                //DAG(nodeSet1 x nodeSet2, (nodeStart1, nodeStart2), (nodeEnd1, nodeEnd2), edgeSet12, mapping12),
+                //  where edgeSet12 = {<(node1, node2), (nodePrime1, nodePrime2)> | <node1, nodePrime1> in edgeSet1, <node2, nodePrime2> in edgeSet2},
+                //  and mapping12(<(node1, node2), (nodePrime1, nodePrime2)>) = { Intersect( funcSet, funcPrimeSet) | funcSet in W1(<node1, nodePrime1>) funcPrimeSet in W2(<node2, nodePrime2>)}
+            }
+
+            public SubStr Unify(SubStr sub1, SubStr sub2)
+            {
+                throw new NotImplementedException();
+
+                //{IntersectPos(posSetk, posSetM)}k,m
+            }
+
+            public ConstStr Unify(ConstStr con1, ConstStr con2)
+            {
+                if (con1.String.Equals(con2.String))
+                    return con1;
+                else
+                    return null;
+            }
+
+            public Loop Unify(Loop loop1, Loop loop2)
+            {
+                return new Loop(Unify(loop1.Dag, loop2.Dag));
+            }
+
+            public CPos Unify(CPos cpos1, CPos cpos2)
+            {
+                if (cpos1.K == cpos2.K)
+                    return cpos1;
+                else
+                    return null;
+            }
+
+            public Pos Unify(Pos pos1, Pos pos2)
+            {
+                return new Pos(UnifyRegex(pos1.R1, pos2.R1), UnifyRegex(pos1.R2, pos2.R2), pos1.C * pos2.C); //wrong, but whatever for now.
+            }
+
+            public TokenSeq UnifyRegex(TokenSeq seq1, TokenSeq seq2)
             {
                 throw new NotImplementedException();
 
