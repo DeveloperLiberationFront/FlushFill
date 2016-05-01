@@ -291,6 +291,11 @@ namespace flushfillsrc
             //Nothing...yet.
         }
 
+        public abstract class Applicable<T>
+        {
+            public abstract T Apply(string s);
+        }
+
         ///FIGURE 1///
         
         /// <summary>
@@ -301,19 +306,94 @@ namespace flushfillsrc
             ///Nothing...for now.
         }
 
-        private class Bool
+        /// <summary>
+        /// A collection of conjunctions OR'd together.
+        /// </summary>
+        private class Bool : Applicable<bool>
         {
-            
+            public HashSet<Conjunct> Conjuncts { get; private set; }
+
+            public Bool(params Conjunct[] conjuncts)
+            {
+                foreach (Conjunct c in conjuncts)
+                    Conjuncts.Add(c);
+            }
+
+            public override bool Apply(string s)
+            {
+                foreach (Conjunct conjuct in Conjuncts)
+                    if (conjuct.Apply(s))
+                        return true;
+                return false;
+            }
         }
 
-        private class Conjunct
+        /// <summary>
+        /// A bunch of predicates AND'd together.
+        /// </summary>
+        private class Conjunct : Applicable<bool>
         {
+            public HashSet<Predicate> Predicates { get; private set; }
 
+            public Conjunct(params Predicate[] predicates)
+            {
+                foreach (Predicate pred in predicates)
+                    Predicates.Add(pred);
+            }
+
+            public override bool Apply(string s)
+            {
+                foreach (Predicate pred in Predicates)
+                    if (!pred.Apply(s))
+                        return false;
+                return true;
+            }
         }
 
-        private class Predicate
+        /// <summary>
+        /// Either Matching a regular expression or not matching.
+        /// TODO: Probably redundant, since I included the Matching field in Match.
+        /// </summary>
+        private class Predicate : Applicable<bool>
         {
+            public Match ThisMatch { get; private set; }
 
+            public Predicate(Match match)
+            {
+                ThisMatch = match;
+            }
+
+            public override bool Apply(string s)
+            {
+                return ThisMatch.Apply(s);
+            }
+        }
+
+        /// <summary>
+        /// (v, r, k) -> The string v has at least k instance of the token sequence r.
+        /// </summary>
+        private class Match : Applicable<bool>
+        {
+            public bool Matching { get; private set; }
+            public string V { get; private set; }
+            public TokenSeq R { get; private set; }
+            public int K { get; private set; }
+
+            /// <summary>
+            /// "matching" refers to whether this intends to find a match or the string that does not match.
+            /// </summary>
+            public Match(bool matching, string v, TokenSeq r, int k)
+            {
+                Matching = matching;
+                V = v;
+                R = r;
+                K = k;
+            }
+
+            public override bool Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private class DAG
