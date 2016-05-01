@@ -306,6 +306,8 @@ namespace flushfillsrc
         /// </summary>
         private class Trace : IApplicable<string>
         {
+            private List<Atomic<?, ?>> Actions { get; private set; }
+
             public string Apply(string s)
             {
                 throw new NotImplementedException();
@@ -426,7 +428,10 @@ namespace flushfillsrc
             }
         }
 
-        private class DAG
+        /// <summary>
+        /// The directed acyclic graph which takes you from the start node to the end...whatever that means.
+        /// </summary>
+        private class DAG : IExpandable<Trace>
         {
             public List<Node> Nodes { get; private set; }
             public Node Start { get; private set; }
@@ -442,22 +447,27 @@ namespace flushfillsrc
                 Edges = edges;
                 Mapping = mapping;
             }
+
+            public HashSet<Trace> Expand()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         /// <summary>
         /// The base class for SubStr, ConstStr, and Loop.
         /// </summary>
-        private abstract class Atomic<T, U> : IEquatable<T>, IApplicable<U>
+        private abstract class Atomic : IEquatable<Atomic>, IApplicable<string>
         {
-            public abstract U Apply(string s);
-            public abstract bool Equals(T other);
+            public abstract string Apply(string s);
+            public abstract bool Equals(Atomic other);
             public abstract override int GetHashCode();
         }
 
         /// <summary>
         /// SubString object.
         /// </summary>
-        private class SubStr : Atomic<SubStr, string> 
+        private class SubStr : Atomic 
         {
             public string String { get; private set; }
             public int Pos1 { get; private set; }
@@ -470,9 +480,15 @@ namespace flushfillsrc
                 Pos2 = pos2;
             }
 
-            public override bool Equals(SubStr other)
+            public override bool Equals(Atomic other)
             {
-                return String.Equals(other.String) && Pos1 == other.Pos1 && Pos2 == other.Pos2;
+                if (other is SubStr)
+                {
+                    SubStr otherS = (SubStr)other;
+                    return String.Equals(otherS.String) && Pos1 == otherS.Pos1 && Pos2 == otherS.Pos2;
+                }
+                else
+                    return false;
             }
 
             public override int GetHashCode()
@@ -489,7 +505,7 @@ namespace flushfillsrc
         /// <summary>
         /// Constant string object.
         /// </summary>
-        private class ConstStr : Atomic<ConstStr, string>
+        private class ConstStr : Atomic
         {
             public string String { get; private set; }
 
@@ -498,9 +514,14 @@ namespace flushfillsrc
                 String = s;
             }
 
-            public override bool Equals(ConstStr other)
+            public override bool Equals(Atomic other)
             {
-                return String.Equals(other.String);
+                if (other is ConstStr)
+                {
+                    return String.Equals(((ConstStr)other).String);
+                }
+                else
+                    return false;
             }
 
             public override int GetHashCode()
@@ -517,7 +538,7 @@ namespace flushfillsrc
         /// <summary>
         /// Loop object.
         /// </summary>
-        private class Loop : Atomic<Loop, Trace> 
+        private class Loop : Atomic 
         {
             public DAG Dag { get; private set; }
 
@@ -526,9 +547,12 @@ namespace flushfillsrc
                 Dag = dag;
             }
 
-            public override bool Equals(Loop other)
+            public override bool Equals(Atomic other)
             {
-                return Dag.Equals(other.Dag);
+                if (other is Loop)
+                    return Dag.Equals(((Loop)other).Dag);
+                else
+                    return false;
             }
 
             public override int GetHashCode()
@@ -536,7 +560,7 @@ namespace flushfillsrc
                 return Dag.GetHashCode();
             }
 
-            public override Trace Apply(string s)
+            public override string Apply(string s)
             {
                 throw new NotImplementedException();
             }
