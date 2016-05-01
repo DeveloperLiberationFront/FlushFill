@@ -99,7 +99,7 @@ namespace flushfillsrc
         private void GenerateStringProgram(List<IOPair> iopairs)
         {
             List<Tuple<List<string>, string>> T = new List<Tuple<List<string>, string>>();
-            foreach(IOPair iopair in iopairs)
+            foreach (IOPair iopair in iopairs)
             {
                 //T = T U (iopair.Input, GenerateStr(iopair); Gets trace expressions.
             }
@@ -112,7 +112,7 @@ namespace flushfillsrc
             //return Switch((B[sigmaSet1], eSet1),...,(B[sigmaSetK], eSetK));
         }
 
-        private DAG GenerateStr(IOPair pair)
+        private DAG GenerateStr(string input, string output)
         {
             List<Node> nodes = null; //= {1,...,Length(pair.Output)};
             Node nodeStart = null, //={1},
@@ -121,7 +121,7 @@ namespace flushfillsrc
             // Let W be the mapping that maps edge <i,j> to the set 
             //      {ConstStr(s[i:j]} U GenerateSubstring(pair.Input, s[i:j]).
             Dictionary<Edge, Operation> mapping = null;
-            mapping = GenerateLoop(pair, edges, mapping);
+            mapping = GenerateLoop(input, output, edges, mapping);
             return new DAG(nodes, nodeStart, nodeEnd, edges, mapping);
         }
 
@@ -160,7 +160,7 @@ namespace flushfillsrc
             //return b;
         }
 
-        private Dictionary<Edge, Operation> GenerateLoop(IOPair pair, List<Edge> edges, Dictionary<Edge, Operation> mapping)
+        private Dictionary<Edge, Operation> GenerateLoop(string input, string output, List<Edge> edges, Dictionary<Edge, Operation> mapping)
         {
             //foreach 0 <= k1, k2, k3 < Length(s)
             //  eSet1 = GenerateStr(sigma, s[k1 : k2]);
@@ -169,15 +169,15 @@ namespace flushfillsrc
             //  if ([[Loop(lambda W : eSet)]]sigma = {s[k1 : k3]})
             //      W(<k1, k3>) = W'(<k1, k3>) U {Loop(lambda W : eSet)};
 
-            string input = pair.Input;
-            int len = pair.Output.Length;
+            int len = output.Length;
             for (int i = 0; i < len; ++i)
             {
                 for (int j = i; j < len; ++j)
                 {
                     for (int k = j; k < len; ++k)
                     {
-                        //traceSet1 = GenerateStr()
+                        var traceSet1 = GenerateStr(input, output.Substring(i, j - i));
+                        var traceSet2 = GenerateStr(input, output.Substring(j, k - j));
                     }
                 }
             }
@@ -221,7 +221,7 @@ namespace flushfillsrc
             //return TokenSeq(IPartss(T1),...,IPartss(Tn));
         }
 
-        class IOPair
+        private class IOPair
         {
             //public string[] Input { get; private set; }
             public string Input { get; private set; }
@@ -237,7 +237,7 @@ namespace flushfillsrc
         /// <summary>
         /// For DAG in paper. Represented by eta.
         /// </summary>
-        class Node
+        private class Node
         {
             //Nothing...yet.
         }
@@ -245,7 +245,7 @@ namespace flushfillsrc
         /// <summary>
         /// For DAG in paper. Represented by xi.
         /// </summary>
-        class Edge
+        private class Edge
         {
             //Nothing...yet.
         }
@@ -253,12 +253,12 @@ namespace flushfillsrc
         /// <summary>
         /// Necessary for whatever the edges in the DAG represent...
         /// </summary>
-        class Operation
+        private class Operation
         {
-
+            //Nothing...yet.
         }
 
-        class DAG
+        private class DAG
         {
             public List<Node> Nodes { get; private set; }
             public Node Start { get; private set; }
@@ -272,7 +272,208 @@ namespace flushfillsrc
                 Start = start;
                 End = end;
                 Edges = edges;
-                Mapping = mapping;                
+                Mapping = mapping;
+            }
+        }
+
+        private class Switch
+        {
+            ///Nothing...for now.
+        }
+
+        /// <summary>
+        /// SubString object.
+        /// </summary>
+        private class SubStr
+        {
+            public string String { get; private set; }
+            public int Pos1 { get; private set; }
+            public int Pos2 { get; private set; }
+            
+            public SubStr(string v1, int pos1, int pos2)
+            {
+                String = v1;
+                Pos1 = pos1;
+                Pos2 = pos2;
+            }
+        }
+
+        /// <summary>
+        /// Constant string object.
+        /// </summary>
+        private class ConstStr
+        {
+            public string String { get; private set; }
+
+            public ConstStr(string s)
+            {
+                String = s;
+            }
+        }
+
+        /// <summary>
+        /// Loop object.
+        /// </summary>
+        private class Loop
+        {
+            public DAG Dag { get; private set; }
+
+            public Loop(DAG dag)
+            {
+                Dag = dag;
+            }
+        }
+
+        /// <summary>
+        /// CPos object.
+        /// </summary>
+        private class CPos
+        {
+            public int K { get; private set; }
+
+            public CPos(int k)
+            {
+                K = k;
+            }
+        }
+
+        /// <summary>
+        /// The Position function.
+        /// </summary>
+        private class Pos
+        {
+            public TokenSeq R1 { get; private set; }
+            public TokenSeq R2 { get; private set; }
+            public int C { get; private set; }
+
+            public Pos(TokenSeq r1, TokenSeq r2, int c)
+            {
+                R1 = r1;
+                R2 = r2;
+                C = c;
+            }
+        }
+
+        /// <summary>
+        /// Getting the character classes: [0-9], [a-zA-Z], [a-z], [A-Z], [0-9a-zA-Z], whitespace.
+        /// </summary>
+        private class Token
+        {
+            //Nothing...yet.
+        }
+
+        /// <summary>
+        /// Token sequence object. Also the regular expressions.
+        /// </summary>
+        private class TokenSeq
+        {
+            public List<Token> Tokens { get; private set; }
+
+            public TokenSeq(params Token[] tokens)
+            {
+                for (int i = 0; i < tokens.Length; ++i)
+                    Tokens.Add(tokens[i]);
+            }
+        }
+
+        /// <summary>
+        /// Holds all the variations of the Intersect algorithm, as described in Figure 4.
+        /// </summary>
+        private class Intersector
+        {
+            public DAG Intersect(DAG dag1, DAG dag2)
+            {
+                throw new NotImplementedException();
+
+                //DAG(nodeSet1 x nodeSet2, (nodeStart1, nodeStart2), (nodeEnd1, nodeEnd2), edgeSet12, mapping12),
+                //  where edgeSet12 = {<(node1, node2), (nodePrime1, nodePrime2)> | <node1, nodePrime1> in edgeSet1, <node2, nodePrime2> in edgeSet2},
+                //  and mapping12(<(node1, node2), (nodePrime1, nodePrime2)>) = { Intersect( funcSet, funcPrimeSet) | funcSet in W1(<node1, nodePrime1>) funcPrimeSet in W2(<node2, nodePrime2>)}
+            }
+
+            public SubStr Intersect(SubStr sub1, SubStr sub2)
+            {
+                throw new NotImplementedException();
+
+                //{IntersectPos(posSetk, posSetM)}k,m
+            }
+
+            public ConstStr Intersect(ConstStr con1, ConstStr con2)
+            {
+                if (con1.String.Equals(con2.String))
+                    return con1;
+                else
+                    return null;
+            }
+
+            public Loop Intersect(Loop loop1, Loop loop2)
+            {
+                return new Loop(Intersect(loop1.Dag, loop2.Dag));
+            }
+
+            public CPos IntersectPos(CPos cpos1, CPos cpos2)
+            {
+                if (cpos1.K == cpos2.K)
+                    return cpos1;
+                else
+                    return null;
+            }
+
+            public Pos IntersectPos(Pos pos1, Pos pos2)
+            {
+                return new Pos(IntersectRegex(pos1.R1, pos2.R1), IntersectRegex(pos1.R2, pos2.R2), pos1.C * pos2.C); //wrong, but whatever for now.
+            }
+
+            public TokenSeq IntersectRegex(TokenSeq seq1, TokenSeq seq2)
+            {
+                throw new NotImplementedException();
+
+                //each of the sequences supposed to have set of sequences???
+            }
+        }
+
+        /// <summary>
+        /// Holds all the size methods, as described in Figure 5.
+        /// </summary>
+        private class Sizer
+        {
+            public int Size(Switch s)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(DAG dag)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(SubStr s)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(Loop loop)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(ConstStr str)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(CPos cpos)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(Pos pos)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int Size(TokenSeq seq)
+            {
+                throw new NotImplementedException();
             }
         }
     }
