@@ -306,11 +306,24 @@ namespace flushfillsrc
         /// </summary>
         private class Trace : IApplicable<string>
         {
-            private List<Atomic<?, ?>> Actions { get; private set; }
+            public List<Atomic> Actions { get; private set; }
+
+            public Trace()
+            {
+                //Nothing...for now.
+            }
+
+            public void Add(Atomic f)
+            {
+                Actions.Add(f);
+            }
 
             public string Apply(string s)
             {
-                throw new NotImplementedException();
+                string result = "";
+                foreach (Atomic action in Actions)
+                    result += action.Apply(s);
+                return result;
             }
         }
 
@@ -321,9 +334,22 @@ namespace flushfillsrc
         /// </summary>
         private class Switch : IApplicable<string>
         {
+            public Dictionary<Bool, Trace> Cases { get; private set; }
+
+            public void Add(Bool caze, Trace trace)
+            {
+                Cases.Add(caze, trace);
+            }
+
             public string Apply(string s)
             {
-                throw new NotImplementedException();
+                foreach (Bool boolean in Cases.Keys)
+                {
+                    if (boolean.Apply(s))
+                        return Cases[boolean].Apply(s);
+                }
+
+                return null;
             }
         }
 
@@ -332,9 +358,17 @@ namespace flushfillsrc
         /// </summary>
         private class SwitchSet : IExpandable<Switch>
         {
+            public Dictionary<Bool, HashSet<Trace>> Cases { get; private set; }
+
+            public void Add(Bool caze, HashSet<Trace> traces)
+            {
+                Cases.Add(caze, traces);
+            }
+
             public HashSet<Switch> Expand()
             {
                 throw new NotImplementedException();
+                //Plan: Need a Switch for every possible combination of Traces in every bool.
             }
         }
 
@@ -465,6 +499,14 @@ namespace flushfillsrc
         }
 
         /// <summary>
+        /// Some version of the three atomic functions (substr conststr, loop) that incorporate sets as params.
+        /// </summary>
+        private abstract class AtomicSet : IExpandable<Atomic>
+        {
+            public abstract HashSet<Atomic> Expand();
+        }
+
+        /// <summary>
         /// SubString object.
         /// </summary>
         private class SubStr : Atomic 
@@ -497,6 +539,18 @@ namespace flushfillsrc
             }
 
             public override string Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+
+        /// <summary>
+        /// SubStr with set arguments, see Figure 3, right side.
+        /// </summary>
+        private class SubStrSet : AtomicSet
+        {
+            public override HashSet<Atomic> Expand()
             {
                 throw new NotImplementedException();
             }
@@ -536,6 +590,18 @@ namespace flushfillsrc
         }
 
         /// <summary>
+        /// ConstStr with set arguments...except this time it's not really any different from not set...
+        /// Kept for consistency.
+        /// </summary>
+        private class ConstStrSet : AtomicSet
+        {
+            public override HashSet<Atomic> Expand()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
         /// Loop object.
         /// </summary>
         private class Loop : Atomic 
@@ -566,10 +632,27 @@ namespace flushfillsrc
             }
         }
 
-        private abstract class Position : IEquatable<Position>
+        /// <summary>
+        /// Loop with set for arguments.
+        /// </summary>
+        private class LoopSet : AtomicSet
         {
+            public override HashSet<Atomic> Expand()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private abstract class Position : IEquatable<Position>, IApplicable<int>
+        {
+            public abstract int Apply(string s);
             public abstract bool Equals(Position other);
             public abstract override int GetHashCode();
+        }
+
+        private abstract class PositionSet : IExpandable<Position>
+        {
+            public abstract HashSet<Position> Expand();
         }
 
         /// <summary>
@@ -595,6 +678,22 @@ namespace flushfillsrc
             public override int GetHashCode()
             {
                 return K.GetHashCode();
+            }
+
+            public override int Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// CPos that takes set as arguments...except this doesn't change much.
+        /// </summary>
+        private class CPosSet : PositionSet
+        {
+            public override HashSet<Position> Expand()
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -628,6 +727,19 @@ namespace flushfillsrc
             public override int GetHashCode()
             {
                 return R1.GetHashCode() ^ R2.GetHashCode() ^ C.GetHashCode();
+            }
+
+            public override int Apply(string s)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private class PosSet : PositionSet
+        {
+            public override HashSet<Position> Expand()
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -714,6 +826,24 @@ namespace flushfillsrc
                 foreach (Token token in Tokens)
                     hash ^= token.GetHashCode();
                 return hash;
+            }
+        }
+
+        /// <summary>
+        /// TokenSequence that has Set arguments.
+        /// </summary>
+        private class TokenSeqSet : IExpandable<TokenSeq>
+        {
+            public List<HashSet<Token>> TokenSets { get; private set; }
+
+            public TokenSeqSet()
+            {
+                throw new NotImplementedException();
+            }
+
+            public HashSet<TokenSeq> Expand()
+            {
+                throw new NotImplementedException();
             }
         }
 
