@@ -204,7 +204,7 @@ namespace flushfillsrc
             //  result = result U PSubStr(v1, Y1, Y2)};
             //return result;
 
-            HashSet<string> result = new HashSet<string>();
+            //HashSet<string> result = new HashSet<string>();
         }
 
         private void GeneratePosition(string s, int k)
