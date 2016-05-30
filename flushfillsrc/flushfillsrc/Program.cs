@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -122,16 +123,18 @@ namespace flushfillsrc
             public string Name { get; private set; }
             public object[] Arguments { get; private set; }
             public int NumArguments { get { return Arguments.Length; } }
+            public int MinimumArguments { get; private set; }
             public Type[] InputTypes { get; private set; }
             public Type OutputType { get; private set; }
             private ExcelFunctionDelegate FuncExecution;
 
-            public ExcelFunction(string name, ExcelFunctionDelegate func, Type[] input, Type output)
+            public ExcelFunction(string name, Type[] input, int min, Type output, ExcelFunctionDelegate func)
             {
                 Name = name;
-                FuncExecution = func;
                 InputTypes = input;
+                MinimumArguments = min;
                 OutputType = output;
+                FuncExecution = func;
             }
 
             public object Execute(params object[] o)
@@ -187,76 +190,86 @@ namespace flushfillsrc
 
             public ExcelFunctionFactory() {
                 FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
-                    delegate (object[] o)
+                    new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, 1, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, Type.TEXT);
+                        StringBuilder concat = new StringBuilder();
+                        foreach (object o in args) concat.Append((string)o);
+                        return concat.ToString();
+                    });
 
                 FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
-                    delegate (object[] o)
+                    new Type[] { Type.TEXT, Type.TEXT }, 2, Type.LOGICAL, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL);
+                        return ((string)args[0]).Equals((string)args[1]);
+                    });
 
                 FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT.ToString("g"),
-                    delegate (object[] o)
+                    null, 1, Type.TEXT, delegate (object[] args)
                     {
                         throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                    });
 
                 FUNCS[Function.LEN] = new ExcelFunction(Function.LEN.ToString("g"),
-                    delegate (object[] o)
+                    new Type[] { Type.TEXT }, 1, Type.NUMBER, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, null, Type.NUMBER);
+                        return ((string)args[0]).Length;
+                    });
 
                 FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER.ToString("g"),
-                    delegate (object[] o)
+                    null, 1, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                        return ((string)args[0]).ToLower();
+                    });
 
-                FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"), 
-                    delegate (object[] o) {
-                        string text = (string)o[0];
-                        int start_num = (int)o[1] - 1; //Subtract one for offset.
-                        int num_chars = (int)o[2]; 
+                FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"),
+                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, 3, Type.TEXT, delegate (object[] args)
+                    {
+                        string text = (string)args[0];
+                        int start_num = (int)args[1] - 1; //Subtract one for offset.
+                        int num_chars = (int)args[2];
 
                         if (start_num < 0 || num_chars < 0) throw new NotSupportedException("No negative numbers allowed.");
                         else if (start_num >= text.Length) return "";
                         else if (start_num + num_chars >= text.Length) return text.Substring(start_num);
                         return text.Substring(start_num, num_chars);
-                    }, new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, Type.TEXT);
+                    });
 
                 FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER.ToString("g"),
-                    delegate (object[] o)
+                    new Type[] { Type.TEXT }, 1, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase((string)args[0]);
+                    });
 
                 FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE.ToString("g"),
-                    delegate (object[] o)
+                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER, Type.TEXT }, 4, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                        string original = (string)args[0];
+                        int start = (int)args[1] - 1, end = (int)args[2];
+                        StringBuilder result = new StringBuilder();
+
+                        if (start < 0 || end < 0) throw new NotSupportedException("No negative numbers allowed.");
+                        /////////////TODO more checks.
+                        result.Append(original.Substring(0, start));
+                        return "";
+                    });
 
                 FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT.ToString("g"),
-                    delegate (object[] o)
+                    null, Type.TEXT, delegate (object[] args)
                     {
                         throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                    });
 
                 FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH.ToString("g"),
-                    delegate (object[] o)
+                    null, Type.NUMBER, delegate (object[] args)
                     {
                         throw new NotSupportedException();
-                    }, null, Type.NUMBER);
+                    });
 
                 FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER.ToString("g"),
-                    delegate (object[] o)
+                    null, Type.TEXT, delegate (object[] args)
                     {
                         throw new NotSupportedException();
-                    }, null, Type.TEXT);
+                    });
             }
         }        
     }
