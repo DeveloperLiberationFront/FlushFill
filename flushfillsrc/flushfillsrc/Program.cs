@@ -119,66 +119,145 @@ namespace flushfillsrc
         /// </summary>
         private class ExcelFunction
         {
-            public ExcelFunctionDelegate Execute;
-
             public string Name { get; private set; }
             public object[] Arguments { get; private set; }
             public int NumArguments { get { return Arguments.Length; } }
+            public Type[] InputTypes { get; private set; }
+            public Type OutputType { get; private set; }
+            private ExcelFunctionDelegate FuncExecution;
 
-            public ExcelFunction(string name, ExcelFunctionDelegate func)
+            public ExcelFunction(string name, ExcelFunctionDelegate func, Type[] input, Type output)
             {
                 Name = name;
-                Execute = func;
+                FuncExecution = func;
+                InputTypes = input;
+                OutputType = output;
+            }
+
+            public object Execute(params object[] o)
+            {
+                if (!TypeCheck(o))
+                    throw new NotSupportedException("Bad types passed in.");
+
+                return FuncExecution(o);
+            }
+
+            //Formerly ExcelFunctionDictionary.
+            public bool TypeCheck(object[] args)
+            {
+                for (int i = 0; i < args.Length; ++i) //TODO: args and types numbers might not perfectly correspond.
+                {
+                    switch (InputTypes[i])
+                    {
+                        case Type.LOGICAL:
+                            if (!(args[i] is bool)) return false;
+                            break;
+                        case Type.NUMBER:
+                            if (!(args[i] is int || args[i] is float)) return false;
+                            break;
+                        case Type.TEXT:
+                            return true; //Everything can be text.
+                        default:
+                            return false;
+                    }
+                }
+
+                return true;
             }
         }
 
         public enum Type { NUMBER, TEXT, LOGICAL };
+        public enum Function
+        {
+            CONCATENATE, EXACT, LEFT, LEN, LOWER, MID,
+            PROPER, REPLACE, RIGHT, SEARCH, UPPER
+        }
         private class ExcelFunctionFactory
         {
             private Excel.WorksheetFunction funcEval = new Excel.Application().WorksheetFunction;
-            public const string MID = "MID";
+            public Dictionary<Function, ExcelFunction> FUNCS = new Dictionary<Function, ExcelFunction>();
 
-            public Dictionary<string, ExcelFunction> DICT = new Dictionary<string, ExcelFunction>();
-
-            public ExcelFunction Create(string func)
+            public ExcelFunction Create(Function func)
             {
-                ExcelFunction excelFunc = null;
-                switch (func)
-                {
-                    case MID:
-                        ExcelFunctionDelegate mid = delegate (object[] o)
-                        {
-                            if (!TypeCheck(func, o)) throw new NotSupportedException("Bad arguments.");
-                            string text = (string)o[0]; int start_num = (int)o[1] - 1; int num_chars = (int)o[2]; //Subtract one for offset.
-
-                            if (start_num < 0 || num_chars < 0) throw new NotSupportedException("No negative numbers allowed.");
-                            else if (start_num >= text.Length) return "";
-                            else if (start_num + num_chars >= text.Length) return text.Substring(start_num);
-                            return text.Substring(start_num, num_chars);
-                        };
-                        excelFunc = new ExcelFunction(func, mid);
-                        break;
-
-                    default:
-                        break;
-                }
-
-                return excelFunc;
+                if (FUNCS.ContainsKey(func))
+                    return FUNCS[func];
+                else
+                    throw new NotSupportedException("Unimplemented function: " + func);
             }
 
-            //Formerly ExcelFunctionDictionary.
-            public bool TypeCheck(string func, object[] args)
-            {
-                switch (func)
-                {
-                    case MID:
-                        return args.Length == 3 && args[0] is string && args[1] is int && args[2] is int;
-                    default:
-                        return false;
-                }
-            }
-        }
+            public ExcelFunctionFactory() {
+                FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, Type.TEXT);
 
-        
+                FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL);
+
+                FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+
+                FUNCS[Function.LEN] = new ExcelFunction(Function.LEN.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.NUMBER);
+
+                FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+
+                FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"), 
+                    delegate (object[] o) {
+                        string text = (string)o[0];
+                        int start_num = (int)o[1] - 1; //Subtract one for offset.
+                        int num_chars = (int)o[2]; 
+
+                        if (start_num < 0 || num_chars < 0) throw new NotSupportedException("No negative numbers allowed.");
+                        else if (start_num >= text.Length) return "";
+                        else if (start_num + num_chars >= text.Length) return text.Substring(start_num);
+                        return text.Substring(start_num, num_chars);
+                    }, new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, Type.TEXT);
+
+                FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+
+                FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+
+                FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+
+                FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.NUMBER);
+
+                FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER.ToString("g"),
+                    delegate (object[] o)
+                    {
+                        throw new NotSupportedException();
+                    }, null, Type.TEXT);
+            }
+        }        
     }
 }
