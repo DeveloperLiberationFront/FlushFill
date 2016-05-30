@@ -42,7 +42,7 @@ namespace flushfillsrc
 
             foreach (string file in files)
             {
-                new FlushFill().Synthesize(file);
+                Console.WriteLine(new FlushFill().Synthesize(file));
                 break;
             }
         }
@@ -81,8 +81,21 @@ namespace flushfillsrc
 
         private string Synthesize(List<IOPair> io)
         {
-            
-            return null;
+            foreach (IOPair pair in io)
+            {
+                ExcelFunction mid = new ExcelFunctionFactory().Create(ExcelFunctionFactory.MID);
+                for (int i = 1; i <= pair.Input.Length; ++i)
+                {
+                    for (int j = 1; j <= pair.Input.Length - i + 1; ++j)
+                    {
+                        string attempt = (string)mid.Execute(pair.Input, i, j);
+                        if (attempt.Equals(pair.Output))
+                            return String.Format("MID({0}, {1}, {2})", pair.Input, i, j);
+                    }
+                }
+            }
+
+            return "";
         }
 
         /// <summary>
@@ -99,18 +112,73 @@ namespace flushfillsrc
             }
         }
 
+        public delegate object ExcelFunctionDelegate(params object[] o);
+
         /// <summary>
         /// Model class for every Excel function wrapper I'll make from now on out.
         /// </summary>
-        private abstract class ExcelFunction
+        private class ExcelFunction
         {
-            protected static Excel.WorksheetFunction funcEval = new Excel.Application().WorksheetFunction;
-            public enum Type { NUMBER, TEXT, LOGICAL };
+            public ExcelFunctionDelegate Execute;
 
+            public string Name { get; private set; }
             public object[] Arguments { get; private set; }
             public int NumArguments { get { return Arguments.Length; } }
-            public Type[] InputTypes { get; private set; }
-            public Type OutputType { get; private set; }
+
+            public ExcelFunction(string name, ExcelFunctionDelegate func)
+            {
+                Name = name;
+                Execute = func;
+            }
         }
+
+        public enum Type { NUMBER, TEXT, LOGICAL };
+        private class ExcelFunctionFactory
+        {
+            private Excel.WorksheetFunction funcEval = new Excel.Application().WorksheetFunction;
+            public const string MID = "MID";
+
+            public Dictionary<string, ExcelFunction> DICT = new Dictionary<string, ExcelFunction>();
+
+            public ExcelFunction Create(string func)
+            {
+                ExcelFunction excelFunc = null;
+                switch (func)
+                {
+                    case MID:
+                        ExcelFunctionDelegate mid = delegate (object[] o)
+                        {
+                            if (!TypeCheck(func, o)) throw new NotSupportedException("Bad arguments.");
+                            string text = (string)o[0]; int start_num = (int)o[1] - 1; int num_chars = (int)o[2]; //Subtract one for offset.
+
+                            if (start_num < 0 || num_chars < 0) throw new NotSupportedException("No negative numbers allowed.");
+                            else if (start_num >= text.Length) return "";
+                            else if (start_num + num_chars >= text.Length) return text.Substring(start_num);
+                            return text.Substring(start_num, num_chars);
+                        };
+                        excelFunc = new ExcelFunction(func, mid);
+                        break;
+
+                    default:
+                        break;
+                }
+
+                return excelFunc;
+            }
+
+            //Formerly ExcelFunctionDictionary.
+            public bool TypeCheck(string func, object[] args)
+            {
+                switch (func)
+                {
+                    case MID:
+                        return args.Length == 3 && args[0] is string && args[1] is int && args[2] is int;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        
     }
 }
