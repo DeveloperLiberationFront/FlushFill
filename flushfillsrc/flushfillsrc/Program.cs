@@ -128,11 +128,10 @@ namespace flushfillsrc
             public Type OutputType { get; private set; }
             private ExcelFunctionDelegate FuncExecution;
 
-            public ExcelFunction(string name, Type[] input, int min, Type output, ExcelFunctionDelegate func)
+            public ExcelFunction(string name, Type[] input, Type output, ExcelFunctionDelegate func)
             {
                 Name = name;
                 InputTypes = input;
-                MinimumArguments = min;
                 OutputType = output;
                 FuncExecution = func;
             }
@@ -190,7 +189,7 @@ namespace flushfillsrc
 
             public ExcelFunctionFactory() {
                 FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
-                    new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, 1, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         StringBuilder concat = new StringBuilder();
                         foreach (object o in args) concat.Append((string)o);
@@ -198,77 +197,101 @@ namespace flushfillsrc
                     });
 
                 FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
-                    new Type[] { Type.TEXT, Type.TEXT }, 2, Type.LOGICAL, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL, delegate (object[] args)
                     {
                         return ((string)args[0]).Equals((string)args[1]);
                     });
 
                 FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT.ToString("g"),
-                    null, 1, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
+                        string text = (string)args[0];
+                        int len = (int)args[1];
+
+                        if (len < 0) throw new NotSupportedException("No negative numbers allowed.");
+                        else if (len >= text.Length) return text;
+                        else return text.Substring(0, len);
                     });
 
                 FUNCS[Function.LEN] = new ExcelFunction(Function.LEN.ToString("g"),
-                    new Type[] { Type.TEXT }, 1, Type.NUMBER, delegate (object[] args)
+                    new Type[] { Type.TEXT }, Type.NUMBER, delegate (object[] args)
                     {
                         return ((string)args[0]).Length;
                     });
 
                 FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER.ToString("g"),
-                    null, 1, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return ((string)args[0]).ToLower();
                     });
 
                 FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"),
-                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, 3, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
                         string text = (string)args[0];
-                        int start_num = (int)args[1] - 1; //Subtract one for offset.
-                        int num_chars = (int)args[2];
+                        int start = (int)args[1] - 1; //Subtract one for offset.
+                        int len = (int)args[2];
 
-                        if (start_num < 0 || num_chars < 0) throw new NotSupportedException("No negative numbers allowed.");
-                        else if (start_num >= text.Length) return "";
-                        else if (start_num + num_chars >= text.Length) return text.Substring(start_num);
-                        return text.Substring(start_num, num_chars);
+                        if (start < 0 || len < 0) throw new NotSupportedException("No negative numbers allowed.");
+                        else if (start >= text.Length) return "";
+                        else if (start + len >= text.Length) return text.Substring(start);
+                        return text.Substring(start, len);
                     });
 
                 FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER.ToString("g"),
-                    new Type[] { Type.TEXT }, 1, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return CultureInfo.CurrentCulture.TextInfo.ToTitleCase((string)args[0]);
                     });
 
                 FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE.ToString("g"),
-                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER, Type.TEXT }, 4, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER, Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         string original = (string)args[0];
-                        int start = (int)args[1] - 1, end = (int)args[2];
+                        string replace = (string)args[3];
+                        int start = (int)args[1] - 1, len = (int)args[2];
                         StringBuilder result = new StringBuilder();
 
-                        if (start < 0 || end < 0) throw new NotSupportedException("No negative numbers allowed.");
-                        /////////////TODO more checks.
+                        if (start < 0 || len < 0) throw new NotSupportedException("No negative numbers allowed.");
+
                         result.Append(original.Substring(0, start));
-                        return "";
+                        result.Append(replace);
+                        if (start + len < original.Length)
+                            result.Append(original.Substring(start + len));
+
+                        return result.ToString();
                     });
 
                 FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT.ToString("g"),
-                    null, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
+                        string text = (string)args[0];
+                        int len = (int)args[1];
+
+                        if (len < 0) throw new NotSupportedException("No negative numbers allowed.");
+                        else if (len >= text.Length) return text;
+                        else return text.Substring(text.Length - len);
                     });
 
                 FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH.ToString("g"),
-                    null, Type.NUMBER, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.TEXT, Type.NUMBER }, Type.NUMBER, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
+                        string find_text = (string)args[0], within_text = (string)args[1];
+                        int start = (int)args[2] - 1;
+
+                        find_text = find_text.ToLower();    //This function is case insensitive.
+                        within_text = within_text.ToLower();
+
+                        int index = within_text.IndexOf(find_text);
+
+                        if (index < 0) throw new NotSupportedException("Substring not found.");
+                        else return index;
                     });
 
                 FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER.ToString("g"),
-                    null, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
-                        throw new NotSupportedException();
+                        return ((string)args[0]).ToUpper();
                     });
             }
         }        
