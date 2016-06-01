@@ -82,9 +82,10 @@ namespace flushfillsrc
 
         private string Synthesize(List<IOPair> io)
         {
+            ExcelFunctionFactory functions = new ExcelFunctionFactory();
             foreach (IOPair pair in io)
             {
-                ExcelFunction mid = new ExcelFunctionFactory().Create(Function.MID);
+                /*ExcelFunction mid = new ExcelFunctionFactory().Create(Function.MID);
                 for (int i = 1; i <= pair.Input.Length; ++i)
                 {
                     for (int j = 1; j <= pair.Input.Length - i + 1; ++j)
@@ -93,10 +94,36 @@ namespace flushfillsrc
                         if (attempt.Equals(pair.Output))
                             return string.Format("MID({0}, {1}, {2})", pair.Input, i, j);
                     }
+                }*/
+
+                Type outputType; bool flag; int num;
+                if (bool.TryParse(pair.Output, out flag)) outputType = Type.LOGICAL;
+                else if (int.TryParse(pair.Output, out num)) outputType = Type.NUMBER;
+                else outputType = Type.TEXT;
+
+                List<ExcelFunction> funcs = functions.GetFunctionsOfType(outputType);
+                foreach (ExcelFunction func in funcs)
+                {
+                    for (int i = 0; i < 5; ++i)
+                    {
+                        Recurse(func, pair, i);
+                    }
                 }
+                    
             }
 
             return "";
+        }
+
+        private void Recurse(ExcelFunction func, IOPair pair, int depth)
+        {
+            if (depth == 0)
+            {
+                //
+            } else
+            {
+                //
+            }
         }
 
         /// <summary>
@@ -153,22 +180,45 @@ namespace flushfillsrc
                 for (int i = 0; i < args.Length; ++i) //TODO: args and types numbers might not perfectly correspond.
                 {
                     Type currentType = (i > InputTypes.Length && Variadic) ? InputTypes.Last() : InputTypes[i]; //What if first condition true but !Variadic?
-                    switch (currentType)
+                    object arg = args[i];
+
+                    if (arg is ExcelFunction)
                     {
-                        case Type.LOGICAL:
-                            if (!(args[i] is bool)) return false;
-                            break;
-                        case Type.NUMBER:
-                            if (!(args[i] is int || args[i] is float)) return false;    //TODO: Chose these two types semi-arbitrarily.
-                            break;
-                        case Type.TEXT:
-                            return true; //Everything can be text.
-                        default:
-                            return false;
+                        Type outputType = ((ExcelFunction)arg).OutputType;
+                        switch (currentType)
+                        {
+                            case Type.LOGICAL:
+                                if (outputType != Type.LOGICAL) return false; break;
+                            case Type.NUMBER:
+                                if (outputType != Type.NUMBER) return false; break;
+                            case Type.TEXT:
+                                break; 
+                            default:
+                                return false;
+                        }
+                    }
+                    else //if just a primitive type
+                    {
+                        switch (currentType)
+                        {
+                            case Type.LOGICAL:
+                                if (!(arg is bool)) return false; break;
+                            case Type.NUMBER:
+                                if (!(arg is int || arg is float)) return false; break;
+                            case Type.TEXT:
+                                break;
+                            default:
+                                return false;
+                        }
                     }
                 }
 
                 return true;
+            }
+
+            public override string ToString()
+            {
+                return Name;
             }
         }
 
@@ -191,21 +241,29 @@ namespace flushfillsrc
                     throw new NotSupportedException("Unimplemented function: " + func);
             }
 
+            public List<ExcelFunction> GetFunctionsOfType(Type type)
+            {
+                return FUNCS.Values.Where(function => function.OutputType == type).ToList();
+            }
+
             public ExcelFunctionFactory() {
+                //https://support.office.com/en-us/article/CONCATENATE-function-8f8ae884-2ca8-4f7a-b093-75d702bea31d
                 FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
-                    new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT, Type.TEXT }, Type.TEXT, delegate (object[] args)    //Can have one argument but not much point.
                     {
                         StringBuilder concat = new StringBuilder();
                         foreach (object o in args) concat.Append((string)o);
                         return concat.ToString();
                     }, true);
 
+                //https://support.office.com/en-us/article/EXACT-function-d3087698-fc15-4a15-9631-12575cf29926
                 FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
                     new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL, delegate (object[] args)
                     {
                         return ((string)args[0]).Equals((string)args[1]);
                     });
 
+                //https://support.office.com/en-us/article/LEFT-LEFTB-functions-9203d2d2-7960-479b-84c6-1ea52b99640c
                 FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT.ToString("g"),
                     new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
@@ -217,18 +275,21 @@ namespace flushfillsrc
                         else return text.Substring(0, len);
                     });
 
+                //https://support.office.com/en-us/article/LEN-LENB-functions-29236f94-cedc-429d-affd-b5e33d2c67cb
                 FUNCS[Function.LEN] = new ExcelFunction(Function.LEN.ToString("g"),
                     new Type[] { Type.TEXT }, Type.NUMBER, delegate (object[] args)
                     {
                         return ((string)args[0]).Length;
                     });
 
+                //https://support.office.com/en-us/article/LOWER-function-3f21df02-a80c-44b2-afaf-81358f9fdeb4
                 FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER.ToString("g"),
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return ((string)args[0]).ToLower();
                     });
 
+                //https://support.office.com/en-us/article/MID-MIDB-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028
                 FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"),
                     new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
@@ -242,12 +303,14 @@ namespace flushfillsrc
                         return text.Substring(start, len);
                     });
 
+                //https://support.office.com/en-us/article/PROPER-function-52a5a283-e8b2-49be-8506-b2887b889f94
                 FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER.ToString("g"),
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return CultureInfo.CurrentCulture.TextInfo.ToTitleCase((string)args[0]);
                     });
 
+                //https://support.office.com/en-us/article/REPLACE-REPLACEB-functions-8d799074-2425-4a8a-84bc-82472868878a
                 FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE.ToString("g"),
                     new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER, Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
@@ -256,16 +319,10 @@ namespace flushfillsrc
                         int start = (int)args[1] - 1, len = (int)args[2];
                         StringBuilder result = new StringBuilder();
 
-                        if (start < 0 || len < 0) throw new NotSupportedException("No negative numbers allowed.");
-
-                        result.Append(original.Substring(0, start));
-                        result.Append(replace);
-                        if (start + len < original.Length)
-                            result.Append(original.Substring(start + len));
-
-                        return result.ToString();
+                        return funcEval.Replace(original, start, len, replace);
                     });
 
+                //https://support.office.com/en-us/article/RIGHT-RIGHTB-functions-240267ee-9afa-4639-a02b-f19e1786cf2f
                 FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT.ToString("g"),
                     new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
@@ -277,21 +334,17 @@ namespace flushfillsrc
                         else return text.Substring(text.Length - len);
                     });
 
+                //https://support.office.com/en-us/article/SEARCH-SEARCHB-functions-9ab04538-0e55-4719-a72e-b6f54513b495
                 FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH.ToString("g"),
                     new Type[] { Type.TEXT, Type.TEXT, Type.NUMBER }, Type.NUMBER, delegate (object[] args)
                     {
                         string find_text = (string)args[0], within_text = (string)args[1];
                         int start = (int)args[2] - 1;
 
-                        find_text = find_text.ToLower();    //This function is case insensitive.
-                        within_text = within_text.ToLower();
-
-                        int index = within_text.IndexOf(find_text);
-
-                        if (index < 0) throw new NotSupportedException("Substring not found.");
-                        else return index;
+                        return funcEval.Search(find_text, within_text, start);
                     });
 
+                //https://support.office.com/en-us/article/UPPER-function-c11f29b3-d1a3-4537-8df6-04d0049963d6
                 FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER.ToString("g"),
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
