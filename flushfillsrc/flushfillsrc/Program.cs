@@ -84,14 +84,14 @@ namespace flushfillsrc
         {
             foreach (IOPair pair in io)
             {
-                ExcelFunction mid = new ExcelFunctionFactory().Create(ExcelFunctionFactory.MID);
+                ExcelFunction mid = new ExcelFunctionFactory().Create(Function.MID);
                 for (int i = 1; i <= pair.Input.Length; ++i)
                 {
                     for (int j = 1; j <= pair.Input.Length - i + 1; ++j)
                     {
                         string attempt = (string)mid.Execute(pair.Input, i, j);
                         if (attempt.Equals(pair.Output))
-                            return String.Format("MID({0}, {1}, {2})", pair.Input, i, j);
+                            return string.Format("MID({0}, {1}, {2})", pair.Input, i, j);
                     }
                 }
             }
@@ -126,14 +126,17 @@ namespace flushfillsrc
             public int MinimumArguments { get; private set; }
             public Type[] InputTypes { get; private set; }
             public Type OutputType { get; private set; }
+            public bool Variadic { get; private set; }
+
             private ExcelFunctionDelegate FuncExecution;
 
-            public ExcelFunction(string name, Type[] input, Type output, ExcelFunctionDelegate func)
+            public ExcelFunction(string name, Type[] input, Type output, ExcelFunctionDelegate func, bool variadic = false)
             {
                 Name = name;
                 InputTypes = input;
                 OutputType = output;
                 FuncExecution = func;
+                Variadic = variadic;
             }
 
             public object Execute(params object[] o)
@@ -149,13 +152,14 @@ namespace flushfillsrc
             {
                 for (int i = 0; i < args.Length; ++i) //TODO: args and types numbers might not perfectly correspond.
                 {
-                    switch (InputTypes[i])
+                    Type currentType = (i > InputTypes.Length && Variadic) ? InputTypes.Last() : InputTypes[i]; //What if first condition true but !Variadic?
+                    switch (currentType)
                     {
                         case Type.LOGICAL:
                             if (!(args[i] is bool)) return false;
                             break;
                         case Type.NUMBER:
-                            if (!(args[i] is int || args[i] is float)) return false;
+                            if (!(args[i] is int || args[i] is float)) return false;    //TODO: Chose these two types semi-arbitrarily.
                             break;
                         case Type.TEXT:
                             return true; //Everything can be text.
@@ -189,12 +193,12 @@ namespace flushfillsrc
 
             public ExcelFunctionFactory() {
                 FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
-                    new Type[] { Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT, Type.TEXT }, Type.TEXT, delegate (object[] args)
+                    new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         StringBuilder concat = new StringBuilder();
                         foreach (object o in args) concat.Append((string)o);
                         return concat.ToString();
-                    });
+                    }, true);
 
                 FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
                     new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL, delegate (object[] args)
