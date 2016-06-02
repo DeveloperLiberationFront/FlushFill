@@ -75,6 +75,7 @@ namespace flushfillsrc
                 }
 
                 iopairs.Add(new IOPair(splitline[0], splitline[1]));
+                break;
             }
 
             return Synthesize(iopairs);
@@ -109,21 +110,47 @@ namespace flushfillsrc
                         Recurse(func, pair, i);
                     }
                 }
-                    
             }
 
             return "";
         }
 
-        private void Recurse(ExcelFunction func, IOPair pair, int depth)
+        private void Recurse(ExcelFunction func, IOPair ex, int depth)
         {
+            List<List<int>> depths = GetPermutations(depth, func.NumArguments);
+
+            Console.WriteLine(func.ToString());
+            foreach (List<int> d in depths) { Console.Write("( "); foreach (int i in d) Console.Write(i + " "); Console.WriteLine(")"); }
+            Console.WriteLine(depths.Count);
             if (depth == 0)
             {
                 //
-            } else
+            }
+            else
             {
                 //
             }
+        }
+
+        private static List<List<int>> GetPermutations(int depth, int args)
+        {
+            List<List<int>> depths = (from num in Enumerable.Range(0, depth).ToList() select new List<int> { num }).ToList();
+            foreach (int _ in Enumerable.Range(0, args - 1))
+            {
+                List<List<int>> newDepths = new List<List<int>>();
+
+                foreach (List<int> oldDepth in depths)
+                    foreach (int j in Enumerable.Range(0, depth))
+                    {
+                        List<int> newList = new List<int>(oldDepth);
+                        newList.Add(j);
+                        newDepths.Add(newList);
+                    }
+
+                depths = newDepths;
+            }
+
+            return depths;
         }
 
         /// <summary>
@@ -149,7 +176,7 @@ namespace flushfillsrc
         {
             public string Name { get; private set; }
             public object[] Arguments { get; private set; }
-            public int NumArguments { get { return Arguments.Length; } }
+            public int NumArguments { get { return InputTypes.Length; } }
             public int MinimumArguments { get; private set; }
             public Type[] InputTypes { get; private set; }
             public Type OutputType { get; private set; }
