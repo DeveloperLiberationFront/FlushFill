@@ -105,10 +105,7 @@ namespace flushfillsrc
                 List<ExcelFunction> funcs = functions.GetFunctionsOfType(outputType);
                 foreach (ExcelFunction func in funcs)
                 {
-                    for (int i = 0; i < 5; ++i)
-                    {
-                        Recurse(func, pair, i);
-                    }
+                    Recurse(func, pair, 5);
                 }
             }
 
@@ -117,18 +114,14 @@ namespace flushfillsrc
 
         private void Recurse(ExcelFunction func, IOPair ex, int depth)
         {
-            List<List<int>> depths = GetPermutations(depth, func.NumArguments);
-
-            Console.WriteLine(func.ToString());
-            foreach (List<int> d in depths) { Console.Write("( "); foreach (int i in d) Console.Write(i + " "); Console.WriteLine(")"); }
-            Console.WriteLine(depths.Count);
             if (depth == 0)
             {
                 //
             }
             else
             {
-                //
+                List<List<int>> depths = GetPermutations(depth - 1, func.NumArguments);
+
             }
         }
 
