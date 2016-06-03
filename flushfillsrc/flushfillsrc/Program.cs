@@ -86,17 +86,6 @@ namespace flushfillsrc
             ExcelFunctionFactory functions = new ExcelFunctionFactory();
             foreach (IOPair pair in io)
             {
-                /*ExcelFunction mid = new ExcelFunctionFactory().Create(Function.MID);
-                for (int i = 1; i <= pair.Input.Length; ++i)
-                {
-                    for (int j = 1; j <= pair.Input.Length - i + 1; ++j)
-                    {
-                        string attempt = (string)mid.Execute(pair.Input, i, j);
-                        if (attempt.Equals(pair.Output))
-                            return string.Format("MID({0}, {1}, {2})", pair.Input, i, j);
-                    }
-                }*/
-
                 Type outputType; bool flag; int num;
                 if (bool.TryParse(pair.Output, out flag)) outputType = Type.LOGICAL;
                 else if (int.TryParse(pair.Output, out num)) outputType = Type.NUMBER;
@@ -105,20 +94,34 @@ namespace flushfillsrc
                 List<ExcelFunction> funcs = functions.GetFunctionsOfType(outputType);
                 foreach (ExcelFunction func in funcs)
                 {
-                    Recurse(func, pair, 5);
+                    Console.WriteLine("Start recurse...");
+                    List<Args[]> l = Recurse(func, pair, 2, functions);
+                    foreach (Args[] a in l)
+                    {
+                        Console.WriteLine(func);
+                        foreach (Args aa in a) Console.Write(aa + " -- ");
+                        Console.WriteLine();
+                        Console.WriteLine();
+                    }
+                    Console.ReadLine();
+
                 }
             }
 
             return "";
         }
 
-        private void Recurse(ExcelFunction func, IOPair ex, int depth)
+        int i = 1;
+        private List<Args[]> Recurse(ExcelFunction func, IOPair ex, int depth, ExcelFunctionFactory functions)
         {
-            List<List<int>> depths = GetPermutations(depth - 1, func.NumArguments);
+            Console.WriteLine("Recurse #" + i++);
+            List<List<int>> depths = GetPermutations(depth, func.NumArguments);
             Type[] types = func.InputTypes;
 
+            List<Args[]> argCombinations = new List<Args[]>();
             foreach (List<int> list in depths)
             {
+                Args[] args = new Args[list.Count];
                 for (int i = 0; i < list.Count; ++i)
                 {
                     int d = list[i];
@@ -134,12 +137,24 @@ namespace flushfillsrc
                             else argument = Args.SingleArgument(ex.Input);
                         }
                         else if (type == Type.NUMBER) argument = Args.NumberArguments(ex.Input.Length); //Number should never go above example length.
+                        else /*if bool*/ argument = Args.BoolArguments();
                     } else
                     {
-
+                        argument = Args.FuncArguments(type, functions);
+                        foreach (object o in argument.Arguments)
+                        {
+                            ExcelFunction f = (ExcelFunction)o;
+                            List<Args[]> l = Recurse(f, ex, depth - 1, functions);
+                        }
                     }
+
+                    args[i] = argument;
                 }
+
+                argCombinations.Add(args);
             }
+
+            return argCombinations;
         }
 
         private static List<List<int>> GetPermutations(int depth, int args)
@@ -201,11 +216,29 @@ namespace flushfillsrc
 
             public static Args TextArguments(string output) 
             {
-                List<string> substrings = new List<string>();
+                HashSet<string> substrings = new HashSet<string>();
                 for (int i = 0; i < output.Length; ++i)
                     for (int j = 0; j < output.Length - i; ++j)
                         substrings.Add(output.Substring(i, j));
                 return new Args(substrings.Select(s => (object)s).ToArray());
+            }
+
+            public static Args BoolArguments()
+            {
+                return new Args(new object[] { true, false });
+            }
+
+            public static Args FuncArguments(Type type, ExcelFunctionFactory funcs)
+            {
+                return new Args(funcs.GetFunctionsOfType(type).Select(f => (object)f).ToArray());
+            }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder("[ ");
+                foreach (object o in Arguments) sb.Append(o.ToString() + " ");
+                sb.Append(" ]");
+                return sb.ToString().Trim();
             }
         }
 
@@ -289,6 +322,11 @@ namespace flushfillsrc
             {
                 return new ExcelFunction(Name, InputTypes, OutputType, Execute, Variadic);
             }
+
+            public override string ToString()
+            {
+                return Name.ToString("g");
+            }
         }
 
         public enum Type { NUMBER, TEXT, LOGICAL };
@@ -312,7 +350,7 @@ namespace flushfillsrc
 
             public List<ExcelFunction> GetFunctionsOfType(Type type)
             {
-                return FUNCS.Values.Where(function => function.OutputType == type).ToList();
+                return FUNCS.Values.Where(f => f.OutputType == type).Select(f => f.MemberwiseClone()).ToList();
             }
 
             public ExcelFunctionFactory() {
