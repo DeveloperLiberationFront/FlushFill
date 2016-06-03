@@ -114,14 +114,31 @@ namespace flushfillsrc
 
         private void Recurse(ExcelFunction func, IOPair ex, int depth)
         {
-            if (depth == 0)
-            {
-                //
-            }
-            else
-            {
-                List<List<int>> depths = GetPermutations(depth - 1, func.NumArguments);
+            List<List<int>> depths = GetPermutations(depth - 1, func.NumArguments);
+            Type[] types = func.InputTypes;
 
+            foreach (List<int> list in depths)
+            {
+                for (int i = 0; i < list.Count; ++i)
+                {
+                    int d = list[i];
+                    Type type = types[i];
+
+                    Args argument;
+                    if (d == 0)
+                    {
+                        if (type == Type.TEXT)
+                        {
+                            if (func.Name == Function.SEARCH) if (i == 1) argument = Args.SingleArgument(ex.Input); else argument = Args.TextArguments(ex.Output);
+                            else if (func.Name == Function.REPLACE) if (i == 0) argument = Args.SingleArgument(ex.Input); else argument = Args.TextArguments(ex.Output);
+                            else argument = Args.SingleArgument(ex.Input);
+                        }
+                        else if (type == Type.NUMBER) argument = Args.NumberArguments(ex.Input.Length); //Number should never go above example length.
+                    } else
+                    {
+
+                    }
+                }
             }
         }
 
@@ -160,6 +177,38 @@ namespace flushfillsrc
             }
         }
 
+        /// <summary>
+        /// Holds all possible arguments for a given argument.
+        /// </summary>
+        private class Args
+        {
+            public object[] Arguments { get; private set; }
+
+            private Args(object[] arg)
+            {
+                Arguments = arg;
+            }
+
+            public static Args SingleArgument(object arg)
+            {
+                return new Args(new object[] { arg });
+            }
+
+            public static Args NumberArguments(int limit)
+            {
+                return new Args(Enumerable.Range(0, limit).Select(number => (object) number).ToArray());
+            }
+
+            public static Args TextArguments(string output) 
+            {
+                List<string> substrings = new List<string>();
+                for (int i = 0; i < output.Length; ++i)
+                    for (int j = 0; j < output.Length - i; ++j)
+                        substrings.Add(output.Substring(i, j));
+                return new Args(substrings.Select(s => (object)s).ToArray());
+            }
+        }
+
         public delegate object ExcelFunctionDelegate(params object[] o);
 
         /// <summary>
@@ -167,7 +216,7 @@ namespace flushfillsrc
         /// </summary>
         private class ExcelFunction
         {
-            public string Name { get; private set; }
+            public Function Name { get; private set; }
             public object[] Arguments { get; private set; }
             public int NumArguments { get { return InputTypes.Length; } }
             public int MinimumArguments { get; private set; }
@@ -177,7 +226,7 @@ namespace flushfillsrc
 
             private ExcelFunctionDelegate FuncExecution;
 
-            public ExcelFunction(string name, Type[] input, Type output, ExcelFunctionDelegate func, bool variadic = false)
+            public ExcelFunction(Function name, Type[] input, Type output, ExcelFunctionDelegate func, bool variadic = false)
             {
                 Name = name;
                 InputTypes = input;
@@ -236,9 +285,9 @@ namespace flushfillsrc
                 return true;
             }
 
-            public override string ToString()
+            public new ExcelFunction MemberwiseClone()
             {
-                return Name;
+                return new ExcelFunction(Name, InputTypes, OutputType, Execute, Variadic);
             }
         }
 
@@ -268,23 +317,23 @@ namespace flushfillsrc
 
             public ExcelFunctionFactory() {
                 //https://support.office.com/en-us/article/CONCATENATE-function-8f8ae884-2ca8-4f7a-b093-75d702bea31d
-                FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
+                /*FUNCS[Function.CONCATENATE] = new ExcelFunction(Function.CONCATENATE.ToString("g"),
                     new Type[] { Type.TEXT, Type.TEXT }, Type.TEXT, delegate (object[] args)    //Can have one argument but not much point.
                     {
                         StringBuilder concat = new StringBuilder();
                         foreach (object o in args) concat.Append((string)o);
                         return concat.ToString();
-                    }, true);
+                    }, true);*/
 
                 //https://support.office.com/en-us/article/EXACT-function-d3087698-fc15-4a15-9631-12575cf29926
-                FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT.ToString("g"),
+                FUNCS[Function.EXACT] = new ExcelFunction(Function.EXACT,
                     new Type[] { Type.TEXT, Type.TEXT }, Type.LOGICAL, delegate (object[] args)
                     {
                         return ((string)args[0]).Equals((string)args[1]);
                     });
 
                 //https://support.office.com/en-us/article/LEFT-LEFTB-functions-9203d2d2-7960-479b-84c6-1ea52b99640c
-                FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT.ToString("g"),
+                FUNCS[Function.LEFT] = new ExcelFunction(Function.LEFT,
                     new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
                         string text = (string)args[0];
@@ -296,21 +345,21 @@ namespace flushfillsrc
                     });
 
                 //https://support.office.com/en-us/article/LEN-LENB-functions-29236f94-cedc-429d-affd-b5e33d2c67cb
-                FUNCS[Function.LEN] = new ExcelFunction(Function.LEN.ToString("g"),
+                FUNCS[Function.LEN] = new ExcelFunction(Function.LEN,
                     new Type[] { Type.TEXT }, Type.NUMBER, delegate (object[] args)
                     {
                         return ((string)args[0]).Length;
                     });
 
                 //https://support.office.com/en-us/article/LOWER-function-3f21df02-a80c-44b2-afaf-81358f9fdeb4
-                FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER.ToString("g"),
+                FUNCS[Function.LOWER] = new ExcelFunction(Function.LOWER,
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return ((string)args[0]).ToLower();
                     });
 
                 //https://support.office.com/en-us/article/MID-MIDB-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028
-                FUNCS[Function.MID] = new ExcelFunction(Function.MID.ToString("g"),
+                FUNCS[Function.MID] = new ExcelFunction(Function.MID,
                     new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
                         string text = (string)args[0];
@@ -324,14 +373,14 @@ namespace flushfillsrc
                     });
 
                 //https://support.office.com/en-us/article/PROPER-function-52a5a283-e8b2-49be-8506-b2887b889f94
-                FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER.ToString("g"),
+                FUNCS[Function.PROPER] = new ExcelFunction(Function.PROPER,
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return CultureInfo.CurrentCulture.TextInfo.ToTitleCase((string)args[0]);
                     });
 
                 //https://support.office.com/en-us/article/REPLACE-REPLACEB-functions-8d799074-2425-4a8a-84bc-82472868878a
-                FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE.ToString("g"),
+                FUNCS[Function.REPLACE] = new ExcelFunction(Function.REPLACE,
                     new Type[] { Type.TEXT, Type.NUMBER, Type.NUMBER, Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         string original = (string)args[0];
@@ -343,7 +392,7 @@ namespace flushfillsrc
                     });
 
                 //https://support.office.com/en-us/article/RIGHT-RIGHTB-functions-240267ee-9afa-4639-a02b-f19e1786cf2f
-                FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT.ToString("g"),
+                FUNCS[Function.RIGHT] = new ExcelFunction(Function.RIGHT,
                     new Type[] { Type.TEXT, Type.NUMBER }, Type.TEXT, delegate (object[] args)
                     {
                         string text = (string)args[0];
@@ -355,7 +404,7 @@ namespace flushfillsrc
                     });
 
                 //https://support.office.com/en-us/article/SEARCH-SEARCHB-functions-9ab04538-0e55-4719-a72e-b6f54513b495
-                FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH.ToString("g"),
+                FUNCS[Function.SEARCH] = new ExcelFunction(Function.SEARCH,
                     new Type[] { Type.TEXT, Type.TEXT, Type.NUMBER }, Type.NUMBER, delegate (object[] args)
                     {
                         string find_text = (string)args[0], within_text = (string)args[1];
@@ -365,7 +414,7 @@ namespace flushfillsrc
                     });
 
                 //https://support.office.com/en-us/article/UPPER-function-c11f29b3-d1a3-4537-8df6-04d0049963d6
-                FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER.ToString("g"),
+                FUNCS[Function.UPPER] = new ExcelFunction(Function.UPPER,
                     new Type[] { Type.TEXT }, Type.TEXT, delegate (object[] args)
                     {
                         return ((string)args[0]).ToUpper();
