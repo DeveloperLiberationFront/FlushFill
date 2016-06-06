@@ -13,42 +13,6 @@ namespace flushfillsrc
     /**
      * 23May - Had to download MICROSOFT OFFICE 2010 PRIMARY INTEROP ASSEMBLIES
      */
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            GetFiles();
-            Console.ReadLine();
-            Excel.Application excelApp = new Excel.Application();
-            Excel.WorksheetFunction funcs = excelApp.WorksheetFunction;
-        }
-
-        /// <summary>
-        /// Get all the files in the examples folder.
-        /// </summary>
-        static void GetFiles()
-        {
-            string[] files;
-            string exDir = "../../examples/";
-
-            try
-            {
-                files = Directory.GetFiles(exDir);
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Console.WriteLine("ERROR: Cannot find directory \"{0}\".", exDir);
-                return;
-            }
-
-            foreach (string file in files)
-            {
-                Console.WriteLine(new FlushFill().Synthesize(file));
-                break;
-            }
-        }
-    }
-
     public class FlushFill
     {
         /// <summary>
@@ -242,7 +206,7 @@ namespace flushfillsrc
                     //Console.WriteLine(func.ToString() + ": " + func.Execute(args));
                 } catch (Exception e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                 }
             }
 
