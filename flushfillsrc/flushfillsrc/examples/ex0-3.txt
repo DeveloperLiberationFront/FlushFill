@@ -1,0 +1,5 @@
+1234 Lansbury Lane	Lane
+0229 Drury Street	Street
+9920 Falsetto Avenue	Avenue
+0000 Nullity Neighborhood	Neighborhood
+404 NotFound Street	Street
