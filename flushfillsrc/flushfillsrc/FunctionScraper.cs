@@ -24,6 +24,8 @@ namespace flushfillsrc
             Dictionary<string, string> links = ExtractFunctionLinks(homeDoc); Console.WriteLine(links.Count);
             foreach (string func in links.Keys)
             {
+                if (func.StartsWith("FORECAST")) continue;
+
                 string url = URL(links[func]);
                 HtmlDocument funcDoc = web.Load(url);
                 Console.WriteLine(ExtractFunctions(func, funcDoc));
@@ -86,33 +88,45 @@ namespace flushfillsrc
         private string ExtractFunctions(string func, HtmlDocument doc)
         {
             Console.WriteLine(func);
-            string argRegex = "\\s*[^,\\)\\s\"]*\\s*",
-                   argsRegex = string.Format("(({0},)*{0})", argRegex);
+
+            if (func.Equals("ISEVEN") || func.Equals("ISODD")) return func + "(value)";
+            else if (func.Equals("BASE")) return "BASE(Number, Radix, [Min_length])";   //Because the official page has a typo.
+            else if (func.Equals("SKEW.P")) return "SKEW.P(number1, [number2],…)";  //Spaces make things complicated
+
+            string argRegex = "[\\s\\.…]*(([^,\\)\\s\"]*)|(\\[[^\\]]*\\]))\\s*",
+                   argsRegex = string.Format("({0},)*{0}", argRegex);
             Regex regex = new Regex("^" + func + "\\s*\\(" + argsRegex + "\\)$"),      //"\\s*\\([^\"\\)]*\\)$")
                   tags = new Regex("<[^>]+>");
             foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//p"))
             {
                 string text = node.InnerHtml.CleanInnerText();
+
+                if (!text.Contains(func)) continue;
                 text = tags.Replace(text, "");
                 Match match = regex.Match(text);
                 if (match.Success) return text;
                 else
-
-                    foreach (HtmlNode bold in doc.DocumentNode.SelectNodes("//b"))
+                {
+                    HtmlNodeCollection boldC = node.SelectNodes("//b");
+                    if (boldC == null || boldC.Count == 0) continue;
+                    foreach (HtmlNode bold in node.SelectNodes("//b"))
                     {
                         text = bold.InnerHtml.CleanInnerText();
                         text = tags.Replace(text, "");
                         match = regex.Match(text);
-                        if (match.Success) return text;
+                        if (match.Success)
+                            return text;
                         else if (text.Equals("Syntax"))
                         {
                             text = bold.ParentNode.InnerHtml.CleanInnerText();
                             text = tags.Replace(text, "");
                             if (text.Contains(":")) text = text.Substring(text.IndexOf(':') + 1).Trim(); //Overflow?
                             match = regex.Match(text);
-                            if (match.Success) return text;
+                            if (match.Success)
+                                return text;
                         }
                     }
+                }
             }
 
             throw new NotSupportedException("CANT FIND IT");
