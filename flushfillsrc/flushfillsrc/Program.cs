@@ -63,7 +63,7 @@ namespace flushfillsrc
             foreach (ExcelFunction func in funcs)
             {
                 //Console.WriteLine("Start recurse...");
-                func.Arguments = Recurse(func, first, 1, functions);
+                func.Arguments = Recurse(func, first, 2, functions);
                 Dictionary<object, string> all = Expand(func);
 
                 foreach (object result in all.Keys)

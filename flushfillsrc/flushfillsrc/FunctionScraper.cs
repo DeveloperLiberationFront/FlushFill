@@ -56,13 +56,12 @@ namespace flushfillsrc
             Dictionary<string, string> links = new Dictionary<string, string>();
             foreach (HtmlNode node in doc.DocumentNode.SelectNodes("//a"))
             {
-                HtmlAttribute titleNode = node.Attributes["title"],
-                              hrefNode = node.Attributes["href"];
+                string title = node.InnerHtml;
+                HtmlAttribute hrefNode = node.Attributes["href"];
 
-                if (titleNode == null || hrefNode == null) continue;
+                if (hrefNode == null) continue;
 
-                string title = titleNode.Value,
-                       href = hrefNode.Value;
+                string href = hrefNode.Value;
 
                 string[] words = title.Split(' ');
                 if (words.Length < 2) continue;
@@ -74,7 +73,7 @@ namespace flushfillsrc
                     {
                         string funcName = words[i].TrimEnd(',');
                         if (!links.ContainsKey(funcName)) links.Add(funcName, href);
-                    }         
+                    }
                 //else nothing
             }
 
