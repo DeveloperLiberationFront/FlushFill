@@ -4,6 +4,7 @@ using ScrapySharp.Extensions;
 using ScrapySharp.Network;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace flushfillsrc
 {
@@ -15,22 +16,26 @@ namespace flushfillsrc
         private const string URL_BASE = "https://support.office.com/en-us/article/";
         private const string HOME = "Excel-functions-by-category-5f91f4e9-7b42-46d2-9bd1-63f26a86c0eb";
 
-        public void Scrape()
+        public List<Function> Scrape()
         {
             //http://stackoverflow.com/questions/19870116/using-htmlagilitypack-for-parsing-a-web-page-information-in-c-sharp
             HtmlWeb web = new HtmlWeb();
 
             HtmlDocument homeDoc = web.Load(URL(HOME));
-            Dictionary<string, string> links = ExtractFunctionLinks(homeDoc); Console.WriteLine(links.Count);
+            Dictionary<string, string> links = ExtractFunctionLinks(homeDoc);
+            List<Function> functions = new List<Function>(); 
             foreach (string func in links.Keys)
             {
-                if (func.StartsWith("FORECAST")) continue;
+                if (func.StartsWith("FORECAST")) continue;  //Irregular link destination.
 
                 string url = URL(links[func]);
                 HtmlDocument funcDoc = web.Load(url);
-                Console.WriteLine(ExtractFunctions(func, funcDoc));
-                Console.WriteLine();
+                string def = ExtractFunctions(func, funcDoc);
+                Function function = new Function(def);
+                functions.Add(function);
             }
+
+            return functions;
         }
             
         /// <summary>
@@ -88,11 +93,18 @@ namespace flushfillsrc
         {
             Console.WriteLine(func);
 
+            //TODO: Is there a more elegant way of regexing even the typos?
             if (func.Equals("ISEVEN") || func.Equals("ISODD")) return func + "(value)";
             else if (func.Equals("BASE")) return "BASE(Number, Radix, [Min_length])";   //Because the official page has a typo.
-            else if (func.Equals("SKEW.P")) return "SKEW.P(number1, [number2],…)";  //Spaces make things complicated
+            else if (func.Equals("SKEW.P")) return "SKEW.P(number1, [number2],…)";      //Spaces make things complicated
+            else if (func.Equals("IF")) return "IF(logical_test, value_if_true, [value_if_false])";
+            else if (func.Equals("IFS")) return "IFS(logical_test1, value_if_true1, [logical_test2, value_if_true2], [logical_test3, value_if_true3],…)";
+            else if (func.Equals("SWITCH")) return "SWITCH(expression, value1, result1, [default or value2, result2],…[default or value3, result3])";
+            else if (func.Equals("MODE.MULT")) return "MODE.MULT(number1,[number2],...)";   //Typo on official page.
 
-            string argRegex = "[\\s\\.…]*(([^,\\)\\s\"]*)|(\\[[^\\]]*\\]))\\s*",
+            string argRegex = "[\\s\\.…]*"          //An argument is preceded by any number of spaces, periods, or ellipses
+                            + "(\\[?[^,\\)\"]*\\]?)"//and is either any series of non-comma, paren, space, or quote characters
+                            + "\\s*",               //and is followed by any amount of whitespace
                    argsRegex = string.Format("({0},)*{0}", argRegex);
             Regex regex = new Regex("^" + func + "\\s*\\(" + argsRegex + "\\)$"),      //"\\s*\\([^\"\\)]*\\)$")
                   tags = new Regex("<[^>]+>");
