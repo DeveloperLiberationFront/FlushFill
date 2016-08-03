@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace flushfillsrc
 {
@@ -22,12 +19,13 @@ namespace flushfillsrc
     public class Function
     {
         public string       Name { get; private set; }              //The words before the parenthesis.
+        public string       Type { get; private set; }              //The function type as defined in API
         public List<string> RequiredArguments { get; private set; } //Every comma-separated value not in brackets
         public bool         Variadic { get; private set; }          //Does it have optional arguments?
         public List<string> OptionalArguments { get; private set; } //The optional arguments.
         public bool         Paired { get; private set; }            //Are arguments expected in pairs if variadic?         
 
-        public Function(string func)
+        public Function(string func, string funcType)
         {
             RequiredArguments = new List<string>();
             OptionalArguments = new List<string>();
@@ -37,23 +35,24 @@ namespace flushfillsrc
                 throw new FormatException("Invalid function signature: " + func);
 
             Name = nameAndArguments[0].Trim();
+            Type = funcType;
 
             string[] arguments = nameAndArguments[1].TrimEnd(')').Split(',');
             for (int i = 0; i < arguments.Length; ++i)
             {
                 string argument = arguments[i].Trim();
 
+                if (argument.StartsWith("...") || argument.EndsWith("...")
+                        || argument.StartsWith("…") || argument.EndsWith("…"))
+                {
+                    Variadic = true;
+                    argument = argument.Trim('.', '…');
+                }
+
+                if (argument.Equals("")) continue;
+
                 if (argument.StartsWith("[") && !(argument.EndsWith("]")))
                     Paired = true;
-
-                if (argument.Contains(".") || argument.Contains("…"))
-                    Variadic = true;
-
-                //Some functions, like IFS, has ellipses and optional args within one argument spot.
-                //This corrects for that.
-                //argument = argument.Replace('.', ' ').Replace('…', ' ').Trim();
-                //if (argument.Equals(""))
-                //    continue;   
 
                 if (argument.StartsWith("[") || argument.EndsWith("]"))
                 {
@@ -67,7 +66,8 @@ namespace flushfillsrc
 
         public override string ToString()
         {
-            string ret = Name + ": " + (Variadic ? "Variadic" : "Non-Variadic") + ", " + (Paired ? "Paired" : "Not Paired");
+            string ret = Name + ": " + Type + ", " + (Variadic ? "Variadic" : "Not Variadic") 
+                + ", " + (Paired ? "Paired" : "Not Paired");
             foreach (string argument in RequiredArguments)
                 ret += "\n\t" + argument;
             foreach (string argument in OptionalArguments)

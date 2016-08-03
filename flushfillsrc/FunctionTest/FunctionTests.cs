@@ -15,7 +15,7 @@ namespace flushfillsrc.Tests
         [Test, TestCaseSource(typeof(FunctionFactory), "TestCases")]
         public void FunctionTest(Function function)
         {
-            Regex regex = new Regex("^[a-zA-Z0-9_]+$");
+            Regex regex = new Regex("^[-a-zA-Z0-9_' ]+$");
             foreach (string argument in function.RequiredArguments)
                 MStringAssert.Matches(argument, regex);
             foreach (string argument in function.OptionalArguments)
@@ -23,6 +23,7 @@ namespace flushfillsrc.Tests
         }
     }
 
+    //Expecting 472 tests.
     public class FunctionFactory
     {
         public static IEnumerable TestCases
