@@ -12,7 +12,8 @@ namespace flushfillsrc
         static void Main(string[] args)
         {
             //GetFiles();
-            new FunctionScraper().Scrape();
+            //new FunctionScraper().Scrape();
+            new FlushFill().TestOpenWorkbook();
             Console.ReadLine();
         }
 

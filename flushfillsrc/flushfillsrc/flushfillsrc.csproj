@@ -65,7 +65,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="FunctionScraper.cs" />
     <Compile Include="OldAttempts\flashfill-adapt.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="FlushFill.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
