@@ -79,22 +79,40 @@ namespace flushfillsrc
                 int arguments = function.NumberOfTotalArguments;
                 foreach (string s in GetArgumentCombinations(arguments, first.Input))
                 {
-                    string formula = string.Format("={0}({1})", function.Name, s);
-                    CheckResults(first, formula);
+                    bool winnerWinnerChickenDinner = true;
+
+                    foreach (IOPair pair in io) {
+                        string argString = string.Format(s, pair.Input);
+                        string formula = string.Format("={0}({1})", function.Name, argString);
+                        if (!CheckResults(first, formula))
+                        {
+                            winnerWinnerChickenDinner = false;
+                            break;
+                        }
+                    }
+
+                    if (winnerWinnerChickenDinner)
+                    {
+                        string argString = string.Format(s, "<input>");
+                        string formula = string.Format("={0}({1})", function.Name, argString);
+                        Console.WriteLine(formula);
+                    }
                 }
             }
         }
 
-        private void CheckResults(IOPair io, string fullFormula)
+        private bool CheckResults(IOPair io, string fullFormula)
         {
             dynamic eval = evaluator.Evaluate(fullFormula);
             if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
             {
                 if (eval.ToString().Equals(io.Output))
                 {
-                    Console.WriteLine(fullFormula);
+                    return true;
                 }
             }
+
+            return false;
         }
 
         private IEnumerable<string> GetArgumentCombinations(int number, string text)
@@ -148,7 +166,7 @@ namespace flushfillsrc
 
         private IEnumerator GetAllArguments(string text)
         {
-            yield return "\"" + text + "\"";
+            yield return "\"{0}\"";
             yield return "true";
             yield return "false";
 
