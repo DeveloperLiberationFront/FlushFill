@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace flushfillsrc
 {
@@ -16,15 +17,24 @@ namespace flushfillsrc
     {
         private const string URL_BASE = "https://support.office.com/en-us/article/";
         private const string HOME = "Excel-functions-alphabetical-b3944572-255d-4efb-bb96-c6d90033e188";
+        private const string SERIALIZE_DESTINATION = "./ ScrapedFiles.bin";
 
-        public List<Function> Scrape()
+        public List<ExcelFunction> Scrape()
         {
+            List<ExcelFunction> functions;
+            if (File.Exists(SERIALIZE_DESTINATION))
+            {
+                functions = DeserializeFunctions();
+                if (functions != null)
+                    return functions;
+            }
+
             //http://stackoverflow.com/questions/19870116/using-htmlagilitypack-for-parsing-a-web-page-information-in-c-sharp
             HtmlWeb web = new HtmlWeb();
 
             HtmlDocument homeDoc = web.Load(URL(HOME));
             Dictionary<string, Tuple<string, string>> links = ExtractFunctionLinks(homeDoc);
-            List<Function> functions = new List<Function>(); 
+            functions = new List<ExcelFunction>(); 
             foreach (string func in links.Keys)
             {
                 if (func.StartsWith("FORECAST")) continue;  //Irregular link destination.
@@ -34,12 +44,52 @@ namespace flushfillsrc
                 string url = URL(urlTail);
                 HtmlDocument funcDoc = web.Load(url);
                 string functionString = ExtractFunctionString(func, funcDoc);
-                functions.Add(new Function(functionString, functionType));
+                functions.Add(new ExcelFunction(functionString, functionType));
+            }
+
+            SerializeFunctions(functions);
+            return functions;
+        }
+
+        //http://www.dotnetperls.com/serialize-list
+        private void SerializeFunctions(List<ExcelFunction> functions)
+        {
+            try
+            {
+                using (Stream stream = File.Open(SERIALIZE_DESTINATION, FileMode.Create))
+                {
+                    BinaryFormatter binary = new BinaryFormatter();
+                    binary.Serialize(stream, functions);
+                }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("Warning: Cannot serialize list of functions into binary file.");
+                if (File.Exists(SERIALIZE_DESTINATION))
+                    File.Delete(SERIALIZE_DESTINATION);
+            }
+        }
+
+        private List<ExcelFunction> DeserializeFunctions()
+        {
+            List<ExcelFunction> functions = null;
+
+            try
+            {
+                using (Stream stream = File.Open(SERIALIZE_DESTINATION, FileMode.Open))
+                {
+                    BinaryFormatter binary = new BinaryFormatter();
+                    functions = (List<ExcelFunction>) binary.Deserialize(stream);
+                }
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("Warning: Cannot deserialize list of functions from binary file.");
             }
 
             return functions;
         }
-            
+
         /// <summary>
         /// Gets full link for a given file on the API website. If it already has the directories, then do nothing.
         /// </summary>

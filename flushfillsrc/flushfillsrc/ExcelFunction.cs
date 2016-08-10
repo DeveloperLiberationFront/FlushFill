@@ -16,16 +16,21 @@ namespace flushfillsrc
     ///         Ellipses might either be three periods or a single ellipsis character.
     ///     Spaces are meaningless.
     /// </summary>
-    public class Function
+    [Serializable()]
+    public class ExcelFunction
     {
         public string       Name { get; private set; }              //The words before the parenthesis.
         public string       Type { get; private set; }              //The function type as defined in API
         public List<string> RequiredArguments { get; private set; } //Every comma-separated value not in brackets
         public bool         Variadic { get; private set; }          //Does it have optional arguments?
         public List<string> OptionalArguments { get; private set; } //The optional arguments.
-        public bool         Paired { get; private set; }            //Are arguments expected in pairs if variadic?         
+        public bool         Paired { get; private set; }            //Are arguments expected in pairs if variadic?  
 
-        public Function(string func, string funcType)
+        public int NumberOfRequiredArguments { get { return RequiredArguments.Count; } }
+        public int NumberOfOptionalArguments { get { return OptionalArguments.Count; } }
+        public int NumberOfTotalArguments { get { return RequiredArguments.Count + OptionalArguments.Count; } }
+
+        public ExcelFunction(string func, string funcType)
         {
             RequiredArguments = new List<string>();
             OptionalArguments = new List<string>();

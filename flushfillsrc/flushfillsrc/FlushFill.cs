@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Excel = Microsoft.Office.Interop.Excel;
+using System.Collections;
 
 namespace flushfillsrc
 {
@@ -59,7 +60,101 @@ namespace flushfillsrc
 
         private string Synthesize(List<IOPair> io)
         {
+            List<string> matches = new List<string>();
+            List<ExcelFunction> functions = new FunctionScraper().Scrape();
+            Recurse(functions, io);
             return "";
+        }
+
+        private Excel.Application evaluator = new Excel.Application();
+
+        private void Recurse(List<ExcelFunction> functions, List<IOPair> io)
+        {
+            IOPair first = io.First();
+            foreach (ExcelFunction function in functions)
+            {
+                if (!AcceptableFunction(function.Name)) continue;
+                Console.WriteLine(function.Name);
+
+                int arguments = function.NumberOfTotalArguments;
+                foreach (string s in GetArgumentCombinations(arguments, first.Input))
+                {
+                    string formula = string.Format("={0}({1})", function.Name, s);
+                    CheckResults(first, formula);
+                }
+            }
+        }
+
+        private void CheckResults(IOPair io, string fullFormula)
+        {
+            dynamic eval = evaluator.Evaluate(fullFormula);
+            if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
+            {
+                if (eval.ToString().Equals(io.Output))
+                {
+                    Console.WriteLine(fullFormula);
+                }
+            }
+        }
+
+        private IEnumerable<string> GetArgumentCombinations(int number, string text)
+        {
+            IEnumerator[] arguments = new IEnumerator[number];
+            for (int i = 0; i < number; ++i)
+            {
+                arguments[i] = GetAllArguments(text);
+            }
+
+            for (int i = 0; i < number - 1; ++i)    //all but last
+            {
+                arguments[i].MoveNext();
+            }
+
+            int index = arguments.Length - 1;
+            while (true)
+            {
+                IEnumerator argument = arguments[index];
+                bool end = !argument.MoveNext();
+
+                if (end)
+                {
+                    if (index == 0) break;
+
+                    argument = GetAllArguments(text);
+                    argument.MoveNext();
+                    arguments[index] = argument;
+                    index -= 1;
+                } else
+                {
+                    yield return Stringify(arguments);
+                    index = arguments.Length - 1;   //reset to final index
+                }
+            }
+        }
+
+        private string Stringify(IEnumerator[] arguments)
+        {
+            StringBuilder stringBuild = new StringBuilder();
+
+            foreach (IEnumerator argument in arguments)
+            {
+                stringBuild.Append(argument.Current);
+                stringBuild.Append(",");
+            }
+
+            stringBuild.Remove(stringBuild.Length - 1, 1);
+            return stringBuild.ToString();
+        }
+
+        private IEnumerator GetAllArguments(string text)
+        {
+            yield return "\"" + text + "\"";
+            yield return "true";
+            yield return "false";
+
+            int limit = text.Length;
+            for (int i = 0; i <= limit; ++i)
+                yield return i;
         }
 
         /// <summary>
@@ -76,69 +171,25 @@ namespace flushfillsrc
             }
         }
 
-        /// <summary>
-        /// Holds all possible arguments for a given argument.
-        /// </summary>
-        private class Args
-        {
-            public object[] Arguments { get; private set; }
-
-            private Args(object[] arg)
-            {
-                Arguments = arg;
-            }
-
-            public static Args SingleArgument(object arg)
-            {
-                return new Args(new object[] { arg });
-            }
-
-            public static Args NumberArguments(int limit)
-            {
-                return new Args(Enumerable.Range(1, limit).Select(number => (object) number).ToArray());
-            }
-
-            public static Args TextArguments(string output) 
-            {
-                HashSet<string> substrings = new HashSet<string>();
-                for (int i = 0; i < output.Length; ++i)
-                    for (int j = 0; j < output.Length - i + 1; ++j)
-                        substrings.Add(output.Substring(i, j));
-                return new Args(substrings.Select(s => (object)s).ToArray());
-            }
-
-            public static Args BoolArguments()
-            {
-                return new Args(new object[] { true, false });
-            }
-
-            /*public static Args FuncArguments(Type type, ExcelFunctionFactory funcs)
-            {
-                return new Args(funcs.GetFunctionsOfType(type).Select(f => (object)f).ToArray());
-            }*/
-
-            public override string ToString()
-            {
-                StringBuilder sb = new StringBuilder("[ ");
-                foreach (object o in Arguments) sb.Append(o.ToString() + " ");
-                sb.Append(" ]");
-                return sb.ToString().Trim();
-            }
-        }
-
         public enum Function
         {
             CONCATENATE, EXACT, LEFT, LEN, LOWER, MID,
             PROPER, REPLACE, RIGHT, SEARCH, UPPER
         }
 
-        public void TestOpenWorkbook()
+        public bool AcceptableFunction(string function)
         {
-            Excel.Application app = new Excel.Application();
-            Excel.Workbook workbook = app.Workbooks.Add(Excel.XlWBATemplate.xlWBATWorksheet);
-            Excel.Worksheet worksheet = workbook.Worksheets[1];
-            dynamic v = app.Evaluate("=SUM(1,2,)");
-            Console.WriteLine(v is Int32);  //http://stackoverflow.com/a/2425170
+            switch (function)
+            {
+                case "LEFT":
+                case "MID":
+                case "REPLACE":
+                case "RIGHT":
+                case "SEARCH":
+                    return true;
+                default:
+                    return false;
+            }
         }
     }
 }

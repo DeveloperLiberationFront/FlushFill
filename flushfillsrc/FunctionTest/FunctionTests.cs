@@ -13,7 +13,7 @@ namespace flushfillsrc.Tests
     public class FunctionTests
     {
         [Test, TestCaseSource(typeof(FunctionFactory), "TestCases")]
-        public void FunctionTest(Function function)
+        public void FunctionTest(ExcelFunction function)
         {
             Regex regex = new Regex("^[-a-zA-Z0-9_' ]+$");
             foreach (string argument in function.RequiredArguments)
@@ -31,8 +31,8 @@ namespace flushfillsrc.Tests
             get
             {
                 FunctionScraper scrape = new FunctionScraper();
-                List<Function> functions = scrape.Scrape();
-                foreach (Function function in functions)
+                List<ExcelFunction> functions = scrape.Scrape();
+                foreach (ExcelFunction function in functions)
                     yield return new TestCaseData(function);
             }
         }
