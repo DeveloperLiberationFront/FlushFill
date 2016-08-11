@@ -27,7 +27,8 @@ namespace flushfillsrc
                 throw new NotSupportedException("Synthesize: Invalid file for examples.");
 
             List<IOPair> iopairs = GetIOFromFile(file);
-            return Synthesize(iopairs);
+            Synthesize(iopairs);
+            return "Done.";
         }
 
         /// <summary>
@@ -51,34 +52,46 @@ namespace flushfillsrc
                 }
 
                 iopairs.Add(new IOPair(splitline[0], splitline[1]));
-                break;
             }
 
             reader.Close();
             return iopairs;
         }
 
-        private string Synthesize(List<IOPair> io)
+        private void Synthesize(List<IOPair> io)
         {
-            List<string> matches = new List<string>();
             List<ExcelFunction> functions = new FunctionScraper().Scrape();
-            Recurse(functions, io);
-            return "";
+            for (int max_depth = 1; max_depth < 5; ++max_depth)
+            {
+                foreach (string s in Recurse(functions, io, max_depth))
+                {
+                    string fullFormula = "=" + s;
+                    if (CheckAllCases(io, fullFormula))
+                    {
+                        string formula = string.Format(s, "<input>");
+                        Console.WriteLine(formula);
+                    }
+                }
+            }
         }
 
         private Excel.Application evaluator = new Excel.Application();
 
-        private void Recurse(List<ExcelFunction> functions, List<IOPair> io)
+        private IEnumerable<string> Recurse(List<ExcelFunction> functions, List<IOPair> io, int max_depth)
         {
-            foreach (string s in GetArgumentCombinations(functions, io.First().Input))
+            foreach (ExcelFunction function in functions)
             {
-                if (CheckAllCases(io, s))
+
+                if (!AcceptableFunction(function.Name)) continue;
+                Console.WriteLine(function.Name);
+
+                int numberOfArguments = function.NumberOfTotalArguments;
+                foreach (string s in GetArgumentCombinations(numberOfArguments, max_depth, functions, io))
                 {
-                    string formula = string.Format(s, "<input>");
-                    Console.WriteLine(formula);
+                    yield return function.Name + "(" + s + ")";
                 }
+
             }
-   
         }
 
         private bool CheckAllCases(List<IOPair> io, string s)
@@ -109,46 +122,13 @@ namespace flushfillsrc
             return false;
         }
 
-        private IEnumerable<string> GetArgumentCombinations(List<ExcelFunction> functions, string text)
+        private IEnumerable<string> GetArgumentCombinations(int number, int max_depth, List<ExcelFunction> functions, List<IOPair> io)
         {
-            foreach (ExcelFunction function in functions)
-            {
-                if (!AcceptableFunction(function.Name)) continue;
-                Console.WriteLine(function.Name);
-
-                int number = function.NumberOfTotalArguments;
-                IEnumerator[] arguments = GetArgumentArray(text, number);
-                int index = arguments.Length - 1;
-
-                while (true)
-                {
-                    IEnumerator argument = arguments[index];
-                    bool end = !argument.MoveNext();
-
-                    if (end)
-                    {
-                        if (index == 0) break;
-
-                        argument = GetAllArguments(text);
-                        argument.MoveNext();
-                        arguments[index] = argument;    //since it seems copies are made, not references
-                        index -= 1;
-                    }
-                    else
-                    {
-                        yield return Stringify(function.Name, arguments);
-                        index = arguments.Length - 1;   //reset to final index
-                    }
-                }
-            }
-        }
-
-        private IEnumerator[] GetArgumentArray(string text, int number)
-        {
+            string text = io.First().Input;
             IEnumerator[] arguments = new IEnumerator[number];
             for (int i = 0; i < number; ++i)
             {
-                arguments[i] = GetAllArguments(text);
+                arguments[i] = GetAllArguments(text, max_depth, functions, io);
             }
 
             for (int i = 0; i < number - 1; ++i)    //all but last
@@ -156,16 +136,31 @@ namespace flushfillsrc
                 arguments[i].MoveNext();
             }
 
-            return arguments;
+            int index = arguments.Length - 1;
+            while (true)
+            {
+                IEnumerator argument = arguments[index];
+                bool end = !argument.MoveNext();
+
+                if (end)
+                {
+                    if (index == 0) break;
+
+                    argument = GetAllArguments(text, max_depth, functions, io);
+                    argument.MoveNext();
+                    arguments[index] = argument;    //since it seems copies are made, not references
+                    index -= 1;
+                } else
+                {
+                    yield return Stringify(arguments);
+                    index = arguments.Length - 1;   //reset to final index
+                }
+            }
         }
 
-        private string Stringify(string function, IEnumerator[] arguments)
+        private string Stringify(IEnumerator[] arguments)
         {
             StringBuilder stringBuild = new StringBuilder();
-
-            stringBuild.Append("=");
-            stringBuild.Append(function);
-            stringBuild.Append("(");
 
             foreach (IEnumerator argument in arguments)
             {
@@ -174,12 +169,10 @@ namespace flushfillsrc
             }
 
             stringBuild.Remove(stringBuild.Length - 1, 1);
-            stringBuild.Append(")");
-
             return stringBuild.ToString();
         }
 
-        private IEnumerator GetAllArguments(string text)
+        private IEnumerator<string> GetAllArguments(string text, int depth, List<ExcelFunction> functions, List<IOPair> io)
         {
             yield return "\"{0}\"";
             yield return "true";
@@ -187,7 +180,13 @@ namespace flushfillsrc
 
             int limit = text.Length;
             for (int i = 0; i <= limit; ++i)
-                yield return i;
+                yield return i + "";
+
+            if (depth > 1)
+            {
+                foreach (string s in Recurse(functions, io, depth - 1))
+                    yield return s;
+            }
         }
 
         /// <summary>

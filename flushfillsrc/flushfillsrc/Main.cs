@@ -12,6 +12,7 @@ namespace flushfillsrc
         static void Main(string[] args)
         {
             GetFiles();
+            //new FlushFill().Synthesize("../../examples/ex0-2.txt");
             //new FunctionScraper().Scrape();
             Console.ReadLine();
         }
@@ -37,7 +38,6 @@ namespace flushfillsrc
             foreach (string file in files)
             {
                 Console.WriteLine(new FlushFill().Synthesize(file));
-                break;
             }
         }
     }
