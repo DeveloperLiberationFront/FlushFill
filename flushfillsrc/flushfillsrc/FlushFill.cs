@@ -70,35 +70,29 @@ namespace flushfillsrc
 
         private void Recurse(List<ExcelFunction> functions, List<IOPair> io)
         {
-            IOPair first = io.First();
-            foreach (ExcelFunction function in functions)
+            foreach (string s in GetArgumentCombinations(functions, io.First().Input))
             {
-                if (!AcceptableFunction(function.Name)) continue;
-                Console.WriteLine(function.Name);
-
-                int arguments = function.NumberOfTotalArguments;
-                foreach (string s in GetArgumentCombinations(arguments, first.Input))
+                if (CheckAllCases(io, s))
                 {
-                    bool winnerWinnerChickenDinner = true;
-
-                    foreach (IOPair pair in io) {
-                        string argString = string.Format(s, pair.Input);
-                        string formula = string.Format("={0}({1})", function.Name, argString);
-                        if (!CheckResults(first, formula))
-                        {
-                            winnerWinnerChickenDinner = false;
-                            break;
-                        }
-                    }
-
-                    if (winnerWinnerChickenDinner)
-                    {
-                        string argString = string.Format(s, "<input>");
-                        string formula = string.Format("={0}({1})", function.Name, argString);
-                        Console.WriteLine(formula);
-                    }
+                    string formula = string.Format(s, "<input>");
+                    Console.WriteLine(formula);
                 }
             }
+   
+        }
+
+        private bool CheckAllCases(List<IOPair> io, string s)
+        {
+            foreach (IOPair pair in io)
+            {
+                string formula = string.Format(s, pair.Input);
+                if (!CheckResults(pair, formula))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private bool CheckResults(IOPair io, string fullFormula)
@@ -115,7 +109,41 @@ namespace flushfillsrc
             return false;
         }
 
-        private IEnumerable<string> GetArgumentCombinations(int number, string text)
+        private IEnumerable<string> GetArgumentCombinations(List<ExcelFunction> functions, string text)
+        {
+            foreach (ExcelFunction function in functions)
+            {
+                if (!AcceptableFunction(function.Name)) continue;
+                Console.WriteLine(function.Name);
+
+                int number = function.NumberOfTotalArguments;
+                IEnumerator[] arguments = GetArgumentArray(text, number);
+                int index = arguments.Length - 1;
+
+                while (true)
+                {
+                    IEnumerator argument = arguments[index];
+                    bool end = !argument.MoveNext();
+
+                    if (end)
+                    {
+                        if (index == 0) break;
+
+                        argument = GetAllArguments(text);
+                        argument.MoveNext();
+                        arguments[index] = argument;    //since it seems copies are made, not references
+                        index -= 1;
+                    }
+                    else
+                    {
+                        yield return Stringify(function.Name, arguments);
+                        index = arguments.Length - 1;   //reset to final index
+                    }
+                }
+            }
+        }
+
+        private IEnumerator[] GetArgumentArray(string text, int number)
         {
             IEnumerator[] arguments = new IEnumerator[number];
             for (int i = 0; i < number; ++i)
@@ -128,31 +156,16 @@ namespace flushfillsrc
                 arguments[i].MoveNext();
             }
 
-            int index = arguments.Length - 1;
-            while (true)
-            {
-                IEnumerator argument = arguments[index];
-                bool end = !argument.MoveNext();
-
-                if (end)
-                {
-                    if (index == 0) break;
-
-                    argument = GetAllArguments(text);
-                    argument.MoveNext();
-                    arguments[index] = argument;
-                    index -= 1;
-                } else
-                {
-                    yield return Stringify(arguments);
-                    index = arguments.Length - 1;   //reset to final index
-                }
-            }
+            return arguments;
         }
 
-        private string Stringify(IEnumerator[] arguments)
+        private string Stringify(string function, IEnumerator[] arguments)
         {
             StringBuilder stringBuild = new StringBuilder();
+
+            stringBuild.Append("=");
+            stringBuild.Append(function);
+            stringBuild.Append("(");
 
             foreach (IEnumerator argument in arguments)
             {
@@ -161,6 +174,8 @@ namespace flushfillsrc
             }
 
             stringBuild.Remove(stringBuild.Length - 1, 1);
+            stringBuild.Append(")");
+
             return stringBuild.ToString();
         }
 
