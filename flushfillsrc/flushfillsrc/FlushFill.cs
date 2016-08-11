@@ -82,10 +82,11 @@ namespace flushfillsrc
             foreach (ExcelFunction function in functions)
             {
 
-                if (!AcceptableFunction(function.Name)) continue;
+                //if (!AcceptableFunction(function.Name)) continue;
                 Console.WriteLine(function.Name);
 
                 int numberOfArguments = function.NumberOfTotalArguments;
+                if (numberOfArguments > 4) continue; //temporary time saver
                 foreach (string s in GetArgumentCombinations(numberOfArguments, max_depth, functions, io))
                 {
                     yield return function.Name + "(" + s + ")";
@@ -110,13 +111,19 @@ namespace flushfillsrc
 
         private bool CheckResults(IOPair io, string fullFormula)
         {
-            dynamic eval = evaluator.Evaluate(fullFormula);
-            if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
+            try
             {
-                if (eval.ToString().Equals(io.Output))
+                dynamic eval = evaluator.Evaluate(fullFormula);
+                if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
                 {
-                    return true;
+                    if (eval.ToString().Equals(io.Output))
+                    {
+                        return true;
+                    }
                 }
+            } catch (IOException)
+            {
+
             }
 
             return false;
