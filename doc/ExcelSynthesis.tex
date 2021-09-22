@@ -1,5 +1,6 @@
 \documentclass{sig-alternate-05-2015}
 \usepackage{xspace}
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -31,7 +32,7 @@
 %\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
 % --- End of Author Metadata ---
 
-\newcommand{\toolname}{FlushFill }
+\newcommand{\toolname}{FlushFill\xspace}
 \title{Excel Program Synthesis}
 %
 % You need the command \numberofauthors to handle the 'placement
@@ -156,6 +157,8 @@ Nevertheless, it is a learning opportunity lost. FlashFill keeps its solutions t
 %I'm not convinced learning it on their own is the best. Wouldn't we want an "infallible" computer to handle things
 %more than a novice. When would a novice sufficiently outperform the computer? Do we want people programming?
 
+%Reapply
+
 We built a tool, \toolname, that maps out this path from problem to solution. Like previous work it generates a program that follows examples to find a new solution for further problems. However, ours also displays this solution in terms of a spreadsheet formula. Once an answer has been found, the user sees how the transformation is accomplished through the combination of spreadsheet functions.
 
 To ensure its usefulness, we then tested \toolname on a benchmark of spreadsheets. First, we wanted to make sure that the formulae created fulfilled the problem to a sufficient degree. Furthermore, we wanted to make sure that the formula, even if correct, were also comprehensible. That is, we want to both help people find the right answer while also finding an answer they can understand and apply.
@@ -163,6 +166,25 @@ To ensure its usefulness, we then tested \toolname on a benchmark of spreadsheet
 %Toolname idea: something along maps, pathfinding, etc.
 
 \section{Related Work}
+Many approaches to this problem have been proposed~\cite{mitchell1982generalization}\cite{kitzelmann2009inductive}.
+
+%Programming by Examples
+Programming by examples has been a goal of the field for years, sparking many approaches in languages such as LISP~\cite{smith1984synthesis}.
+
+Such example-driven synthesis has been used for such things as program code changes based on the edits that programmers make~\cite{DBLP:journals/corr/SousaSDPGGSH16}.
+
+Inductive functional programming~\cite{kitzelmann2008analytical} parallels this research most clearly in the form of MagicHaskeller~\cite{katayama2009recent} and it's more pertinent sibling, MagicExceller\footnote{\href{http://nautilus.cs.miyazaki-u.ac.jp/~skata/MagicExceller.html}{http://nautilus.cs.miyazaki-u.ac.jp/~skata/MagicExceller.html}}.
+
+Elsewhere in spreadsheets, some tools, such as FIDEX, synthesize expressions to filter data in the columns~\cite{Wang:2016:FFS:2983990.2984030}. And FlashFill, already incorporated into Excel, can induce string transformation programs based in input/output examples~\cite{gulwani2011automating}. Unlike \toolname, however, these programs don't display the solution in a domain language which the user can read and adapt elsewhere in the spreadsheet.
+%* Spreadsheet
+
+%Programming by Demonstration
+
+Lau and co.'s extension of Mitchell's version space algebra~\cite{mitchell1982generalization} allows them to tackle the problem of repeated text editor tasks~\cite{lau2003programming}.
+
+Programming by natural language has also been successful. Gulwani and Marron's NLyze~\cite{gulwani2014nlyze} combines approaches from keyword programming and semantic parsing to generate the most likely programmings for a given task.
+
+This project also considers the way to present the information, a pertinent question explored by others. Mayer and co. recently explored some new approaches to this problem, suggesting what they call Program Navigation and Conversational Clarification~\cite{Mayer:2015:UIM:2807442.2807459}.
 
 \section{Conclusion}
 \toolname fits into an a landscape of spreadsheet solutions while emphasizing a particular approach to the synthesis problem. By scaffolding a framework for heuristics, we have in \toolname a flexible tool that can grow and develop as new ideas come along. That is, the performance that we show in this paper is only one configuration of tested heuristics -- when better ideas come along, we can plug them in and improve performance even further.

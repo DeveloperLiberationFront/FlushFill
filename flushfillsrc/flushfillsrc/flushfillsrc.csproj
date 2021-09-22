@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FunctionSpace.cs" />
     <Compile Include="ExcelFunction.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="FunctionScraper.cs" />

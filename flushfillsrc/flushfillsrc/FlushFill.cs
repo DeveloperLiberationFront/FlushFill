@@ -26,7 +26,7 @@ namespace flushfillsrc
             if (!file.EndsWith(".txt") || !File.Exists(file))
                 throw new NotSupportedException("Synthesize: Invalid file for examples.");
 
-            List<IOPair> iopairs = GetIOFromFile(file);
+            IOSet iopairs = GetIOFromFile(file);
             Synthesize(iopairs);
             return "Done.";
         }
@@ -36,7 +36,7 @@ namespace flushfillsrc
         /// </summary>
         /// <param name="file">The file to open and parse.</param>
         /// <returns>A list of IOPair objects which represents the problem.</returns>
-        private static List<IOPair> GetIOFromFile(string file)
+        private static IOSet GetIOFromFile(string file)
         {
             StreamReader reader = new StreamReader(File.OpenRead(@file));       //Note to self: @ is verbatim string, regex ignored
             List<IOPair> iopairs = new List<IOPair>();
@@ -55,10 +55,10 @@ namespace flushfillsrc
             }
 
             reader.Close();
-            return iopairs;
+            return new IOSet(iopairs);
         }
 
-        private void Synthesize(List<IOPair> io)
+        private void Synthesize(IOSet io)
         {
             List<ExcelFunction> functions = new FunctionScraper().Scrape();
             for (int max_depth = 1; max_depth < 5; ++max_depth)
@@ -73,16 +73,15 @@ namespace flushfillsrc
                     }
                 }
             }
-        }
 
-        private Excel.Application evaluator = new Excel.Application();
+            //TODO: Ranking
+        }
 
         private IEnumerable<string> Recurse(List<ExcelFunction> functions, List<IOPair> io, int max_depth)
         {
             foreach (ExcelFunction function in functions)
             {
 
-                //if (!AcceptableFunction(function.Name)) continue;
                 Console.WriteLine(function.Name);
 
                 int numberOfArguments = function.NumberOfTotalArguments;
@@ -93,40 +92,6 @@ namespace flushfillsrc
                 }
 
             }
-        }
-
-        private bool CheckAllCases(List<IOPair> io, string s)
-        {
-            foreach (IOPair pair in io)
-            {
-                string formula = string.Format(s, pair.Input);
-                if (!CheckResults(pair, formula))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private bool CheckResults(IOPair io, string fullFormula)
-        {
-            try
-            {
-                dynamic eval = evaluator.Evaluate(fullFormula);
-                if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
-                {
-                    if (eval.ToString().Equals(io.Output))
-                    {
-                        return true;
-                    }
-                }
-            } catch (IOException)
-            {
-
-            }
-
-            return false;
         }
 
         private IEnumerable<string> GetArgumentCombinations(int number, int max_depth, List<ExcelFunction> functions, List<IOPair> io)
@@ -195,40 +160,72 @@ namespace flushfillsrc
                     yield return s;
             }
         }
+    }
 
-        /// <summary>
-        /// Wrapper for an input value and its expected transformation.
-        /// </summary>
-        private class IOPair
+    /// <summary>
+    /// Wrapper for an input value and its expected transformation.
+    /// </summary>
+    public class IOPair
+    {
+        public string Input { get; private set; }
+        public string Output { get; private set; }
+
+        public IOPair(string i, string o)
         {
-            public string Input { get; private set; }
-            public string Output { get; private set; }
+            Input = i; Output = o;
+        }
+    }
 
-            public IOPair(string i, string o)
-            {
-                Input = i; Output = o;
-            }
+    public class IOSet
+    {
+        public List<IOPair> Examples { get; private set; }
+        private Excel.Application evaluator = new Excel.Application();
+
+        public IOSet(List<IOPair> examples)
+        {
+            Examples = examples;
         }
 
-        public enum Function
+        public bool CheckAllCases(string s)
         {
-            CONCATENATE, EXACT, LEFT, LEN, LOWER, MID,
-            PROPER, REPLACE, RIGHT, SEARCH, UPPER
-        }
-
-        public bool AcceptableFunction(string function)
-        {
-            switch (function)
+            foreach (IOPair pair in Examples)
             {
-                case "LEFT":
-                case "MID":
-                case "REPLACE":
-                case "RIGHT":
-                case "SEARCH":
-                    return true;
-                default:
+                string formula = string.Format(s, pair.Input);
+                if (!CheckResults(pair, formula))
+                {
                     return false;
+                }
             }
+
+            return true;
+        }
+
+        public bool CheckResults(IOPair io, string fullFormula)
+        {
+            dynamic eval = evaluate(fullFormula);
+            if (!(eval is Int32))  //http://stackoverflow.com/a/2425170
+            {
+                if (eval.ToString().Equals(io.Output))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        public dynamic evaluate(string formula)
+        {
+            dynamic result;
+            try
+            {
+                result = evaluator.Evaluate(formula);
+            }
+            catch (IOException)
+            {
+                result = -2146826273; // #Value! 
+            }
+            return result;
         }
     }
 }
